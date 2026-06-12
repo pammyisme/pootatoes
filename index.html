@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#ffffff"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Pootates"/>
+  <meta name="description" content="Our couple app"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <title>Pootates</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;}
+    :root{
+      --ink:#1a1a1a;--ink2:#666;--ink3:#999;
+      --bg:#ffffff;--bg2:#f5f5f5;--bg3:#ebebeb;
+      --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.2);
+      --radius:12px;--radius-lg:18px;
+      --accent:#1a1a1a;--accent-light:#f0f0f0;
+    }
+    @media(prefers-color-scheme:dark){
+      :root{--ink:#f2f2f7;--ink2:#aeaeb2;--ink3:#636366;--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);--accent:#f2f2f7;--accent-light:#2c2c2e;}
+    }
+    #app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;}
+    .sbar{background:var(--bg);padding:14px 20px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+    .sbar-time{font-size:15px;font-weight:600;color:var(--ink);}
+    .sbar-icons{display:flex;gap:6px;align-items:center;color:var(--ink2);}
+    .screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:82px;}
+    .navbar{position:absolute;bottom:0;left:0;right:0;background:var(--bg);border-top:0.5px solid var(--border);display:flex;align-items:center;padding:8px 0 max(10px,env(safe-area-inset-bottom));z-index:100;}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--ink3);font-size:10px;user-select:none;-webkit-user-select:none;}
+    .nav-item.active{color:var(--accent);}
+    .nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .nav-fab-wrap{flex:0.8;display:flex;justify-content:center;}
+    .nav-fab{width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:-18px;border:3px solid var(--bg);user-select:none;}
+    .nav-fab svg{width:22px;height:22px;stroke:var(--bg);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+    .page-header{padding:18px 18px 12px;background:var(--bg);}
+    .page-title{font-size:26px;font-weight:700;color:var(--ink);}
+    .page-sub{font-size:14px;color:var(--ink2);margin-top:3px;}
+
+    /* Memory list */
+    .mem-list{padding:6px 14px 10px;}
+    .mem-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;}
+    .mem-card:active{background:var(--bg2);}
+    .mem-emoji-box{width:46px;height:46px;border-radius:14px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+    .mem-info{flex:1;min-width:0;}
+    .mem-title{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .mem-date{font-size:12px;color:var(--ink2);margin:2px 0 7px;}
+    .mem-tags{display:flex;flex-wrap:wrap;gap:4px;}
+    .tag{font-size:11px;padding:3px 8px;border-radius:999px;font-weight:500;background:var(--bg2);color:var(--ink2);}
+    .tag-place{background:#E6F1FB;color:#0C447C;}
+    .tag-activity{background:#EAF3DE;color:#27500A;}
+    .pin-icon{color:var(--ink3);flex-shrink:0;margin-top:2px;}
+    .pin-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+
+    /* Empty */
+    .empty{text-align:center;padding:50px 20px;color:var(--ink2);}
+    .empty-icon{font-size:48px;margin-bottom:12px;opacity:0.25;}
+    .empty h3{font-size:17px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+    .empty p{font-size:14px;line-height:1.5;}
+
+    /* Map */
+    .map-wrap{padding:0 14px;}
+    #lmap{width:100%;height:300px;border-radius:var(--radius-lg);overflow:hidden;border:0.5px solid var(--border);z-index:1;}
+    #detail-lmap{width:100%;height:180px;z-index:1;}
+    .detail-map-wrap{margin:0 18px 4px;border-radius:var(--radius);overflow:hidden;border:0.5px solid var(--border);}
+    .map-legend{padding:10px 14px 4px;display:flex;flex-wrap:wrap;gap:8px;}
+    .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink2);cursor:pointer;}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    /* Heatmap badge */
+    .freq-badge{position:absolute;top:-4px;right:-4px;background:#1a1a1a;color:#fff;font-size:9px;font-weight:700;border-radius:999px;padding:1px 4px;min-width:16px;text-align:center;z-index:10;}
+    /* Top places */
+    .top-places{padding:10px 14px 6px;}
+    .top-place-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+    .top-place-row:last-child{border-bottom:none;}
+    .top-place-rank{font-size:13px;font-weight:700;color:var(--ink3);width:20px;}
+    .top-place-name{flex:1;font-size:14px;color:var(--ink);}
+    .top-place-count{font-size:12px;color:var(--ink2);background:var(--bg2);padding:2px 8px;border-radius:999px;}
+
+    /* Leaflet popup */
+    .leaflet-popup-content-wrapper{border-radius:10px!important;font-family:-apple-system,sans-serif!important;}
+    .leaflet-popup-content{margin:10px 14px!important;font-size:13px!important;}
+
+    /* Detail */
+    .back-row{padding:12px 16px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--accent);font-size:15px;}
+    .back-row svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+    .detail-hero{padding:16px 18px 14px;border-bottom:0.5px solid var(--border);display:flex;gap:14px;align-items:center;}
+    .detail-emoji-big{width:60px;height:60px;border-radius:18px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;}
+    .detail-name{font-size:20px;font-weight:700;color:var(--ink);}
+    .detail-date{font-size:13px;color:var(--ink2);margin-top:4px;}
+    .detail-row{padding:13px 18px;border-bottom:0.5px solid var(--border);display:flex;gap:14px;align-items:flex-start;}
+    .detail-row-icon{color:var(--accent);flex-shrink:0;margin-top:1px;}
+    .detail-row-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .detail-row-label{font-size:12px;color:var(--ink2);margin-bottom:3px;}
+    .detail-row-val{font-size:15px;color:var(--ink);line-height:1.5;}
+    .detail-note{padding:16px 18px;font-size:15px;color:var(--ink2);line-height:1.6;font-style:italic;border-bottom:0.5px solid var(--border);}
+    .detail-actions{padding:16px 18px;display:flex;gap:10px;}
+    .btn{flex:1;border-radius:var(--radius);padding:12px;font-size:15px;cursor:pointer;text-align:center;font-weight:500;border:none;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .btn-primary{background:var(--accent);color:var(--bg);}
+    .btn-secondary{background:var(--bg2);color:var(--ink);}
+    .btn-danger{background:#FCEBEB;color:#A32D2D;}
+    .btn-maps{background:var(--bg2);color:var(--ink);}
+    .btn:active{opacity:0.75;}
+
+    /* Form */
+    .form-topbar{padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--bg);}
+    .form-topbar-title{font-size:17px;font-weight:600;color:var(--ink);flex:1;}
+    .icon-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:0.5px solid var(--border);background:transparent;cursor:pointer;color:var(--ink2);}
+    .icon-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .form-body{padding:14px 16px 90px;}
+    .f-label{font-size:13px;font-weight:500;color:var(--ink2);margin-bottom:5px;}
+    .f-input{width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 13px;font-size:15px;color:var(--ink);font-family:inherit;margin-bottom:12px;outline:none;}
+    .f-input:focus{border-color:var(--accent);}
+    .f-textarea{width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 13px;font-size:15px;color:var(--ink);font-family:inherit;resize:none;min-height:80px;outline:none;}
+    .f-textarea:focus{border-color:var(--accent);}
+    .emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+    .emoji-opt{aspect-ratio:1;border-radius:12px;border:2.5px solid transparent;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;background:var(--bg2);}
+    .emoji-opt.sel{border-color:var(--accent);background:var(--accent-light);}
+    .search-results{background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);overflow:hidden;margin-top:-10px;margin-bottom:12px;display:none;}
+    .search-result-item{padding:11px 13px;font-size:14px;color:var(--ink);cursor:pointer;border-bottom:0.5px solid var(--border);}
+    .search-result-item:last-child{border-bottom:none;}
+    .search-result-item:active{background:var(--bg2);}
+    .search-result-name{font-weight:500;}
+    .search-result-addr{font-size:12px;color:var(--ink2);margin-top:2px;}
+    .locate-btn{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:11px 13px;font-size:14px;color:var(--ink2);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px;}
+    .locate-btn:active{background:var(--bg3);}
+    .locate-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .coord-row{display:flex;gap:8px;margin-bottom:4px;}
+    .coord-row .f-input{margin-bottom:0;flex:1;}
+    .coord-hint{font-size:12px;color:var(--ink3);margin-bottom:12px;margin-top:5px;line-height:1.5;}
+    .save-btn{width:100%;background:var(--accent);border:none;border-radius:var(--radius-lg);padding:15px;font-size:16px;font-weight:600;color:var(--bg);cursor:pointer;margin-top:6px;font-family:inherit;}
+    .save-btn:active{opacity:0.85;}
+
+    /* Stats */
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;}
+    .stat-card{border-radius:16px;padding:16px;cursor:pointer;border:0.5px solid transparent;}
+    .stat-card:active{opacity:0.8;}
+    .stat-card.active-card{border-color:var(--accent);}
+    .stat-icon{font-size:22px;margin-bottom:8px;}
+    .stat-val{font-size:26px;font-weight:700;margin-bottom:3px;}
+    .stat-label{font-size:12px;font-weight:500;opacity:0.75;}
+    .section-block{padding:0 16px 16px;}
+    .section-title{font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:10px;}
+    .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .bar-label{font-size:13px;color:var(--ink2);width:50px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+    .bar-track{flex:1;background:var(--bg2);border-radius:4px;height:8px;overflow:hidden;}
+    .bar-fill{background:var(--accent);height:100%;border-radius:4px;}
+    .bar-count{font-size:12px;color:var(--ink2);width:18px;text-align:right;flex-shrink:0;}
+    .chip-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+    .stat-detail-panel{background:var(--bg2);border-radius:var(--radius-lg);margin:0 16px 16px;padding:14px;display:none;}
+    .stat-detail-panel.open{display:block;}
+    .stat-mem-item{padding:9px 0;border-bottom:0.5px solid var(--border);display:flex;gap:10px;align-items:center;cursor:pointer;}
+    .stat-mem-item:last-child{border-bottom:none;}
+    .stat-mem-item:active{opacity:0.7;}
+    .stat-mem-emoji{font-size:20px;width:32px;text-align:center;flex-shrink:0;}
+    .stat-mem-info{flex:1;min-width:0;}
+    .stat-mem-title{font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .stat-mem-date{font-size:12px;color:var(--ink2);}
+
+    /* Month summary */
+    .month-summary{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin:0 16px 14px;padding:14px;}
+    .month-summary-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:10px;}
+    .month-summary-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;font-size:14px;color:var(--ink2);line-height:1.5;}
+    .month-summary-row:last-child{margin-bottom:0;}
+    .month-summary-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px;}
+
+
+
+    /* Spin the Wheel */
+    .wheel-wrap{padding:14px 16px;}
+    .wheel-canvas-wrap{display:flex;justify-content:center;margin-bottom:16px;position:relative;}
+    #wheel-canvas{border-radius:50%;border:3px solid var(--border2);}
+    .wheel-pointer{position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:20px solid var(--accent);z-index:10;}
+    .spin-btn{width:100%;background:var(--accent);border:none;border-radius:var(--radius-lg);padding:14px;font-size:16px;font-weight:600;color:var(--bg);cursor:pointer;font-family:inherit;margin-bottom:14px;}
+    .spin-btn:active{opacity:0.85;}
+    .spin-btn:disabled{opacity:0.4;cursor:not-allowed;}
+    .wheel-result{text-align:center;padding:14px;background:var(--bg2);border-radius:var(--radius-lg);margin-bottom:16px;font-size:18px;font-weight:600;color:var(--ink);display:none;}
+    .wheel-items-title{font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:8px;}
+    .wheel-item-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+    .wheel-item-input{flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:14px;color:var(--ink);font-family:inherit;outline:none;}
+    .wheel-item-input:focus{border-color:var(--accent);}
+    .wheel-remove-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--ink3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .wheel-add-btn{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:10px;font-size:14px;color:var(--ink2);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .wheel-add-btn:active{background:var(--bg3);}
+
+    /* Bucket List */
+    .bucket-wrap{padding:6px 14px 10px;}
+    .bucket-section-title{font-size:13px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;padding:8px 0 6px;}
+    .bucket-item{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:center;cursor:pointer;}
+    .bucket-item:active{background:var(--bg2);}
+    .bucket-item.done{opacity:0.5;}
+    .bucket-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;}
+    .bucket-check.checked{background:var(--accent);border-color:var(--accent);color:var(--bg);}
+    .bucket-text{flex:1;font-size:15px;color:var(--ink);line-height:1.4;}
+    .bucket-item.done .bucket-text{text-decoration:line-through;color:var(--ink3);}
+    .bucket-del{background:transparent;border:none;color:var(--ink3);font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;}
+    .bucket-add-row{display:flex;gap:8px;padding:4px 0 10px;}
+    .bucket-add-input{flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 13px;font-size:15px;color:var(--ink);font-family:inherit;outline:none;}
+    .bucket-add-input:focus{border-color:var(--accent);}
+    .bucket-add-btn{background:var(--accent);border:none;border-radius:var(--radius);padding:11px 16px;font-size:14px;font-weight:600;color:var(--bg);cursor:pointer;font-family:inherit;white-space:nowrap;}
+
+    /* Install banner */
+    .install-banner{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);margin:0 14px 10px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+    .install-banner-text{flex:1;font-size:13px;color:var(--ink2);line-height:1.4;}
+    .install-btn{background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;}
+    .dismiss-btn{background:transparent;border:none;color:var(--ink3);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="sbar">
+    <span class="sbar-time" id="clock">9:41</span>
+    <div class="sbar-icons">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
+      <svg width="20" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="0" y="1" width="18" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><rect x="1.5" y="2.5" width="11" height="7" rx="1" fill="currentColor"/><path d="M19 4.5v3a1.5 1.5 0 0 0 0-3z" fill="currentColor"/></svg>
+    </div>
+  </div>
+  <div class="screen" id="screen"></div>
+  <div class="navbar">
+    <div class="nav-item active" id="nav-home" onclick="go('home')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Memories</span>
+    </div>
+    <div class="nav-item" id="nav-map" onclick="go('map')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span>Map</span>
+    </div>
+    <div class="nav-fab-wrap">
+      <div class="nav-fab" onclick="go('add')" role="button" aria-label="Add memory">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </div>
+    <div class="nav-item" id="nav-more" onclick="go('more')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+      <span>More</span>
+    </div>
+    <div class="nav-item" id="nav-stats" onclick="go('stats')">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Stats</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const EMOJIS=['🎬','🏔️','🗺️','🏃','🎵','✈️','🍷','🐾','💻','💕'];
+const COLORS=['#1a1a1a','#444','#666','#888','#333','#555','#222','#777','#999','#111'];
+
+/* ── Data ── */
+let mems=JSON.parse(localStorage.getItem('pootates_mems')||'null')||[
+  {id:1,emoji:'💕',title:'First date',date:'2023-04-14',place:'Bukit Bintang, KL',lat:3.1478,lng:101.7133,activity:'Dinner & walk',note:'We talked for 4 hours without noticing the time.'},
+  {id:2,emoji:'✈️',title:'Penang trip',date:'2023-08-20',place:'Penang',lat:5.4141,lng:100.3288,activity:'Heritage streets',note:'Got a bit lost but found the best nasi kandar by accident.'},
+  {id:3,emoji:'🎬',title:'Movie marathon',date:'2024-01-01',place:'Home',lat:3.139,lng:101.6869,activity:'Watching films',note:'Fell asleep during the third movie.'},
+  {id:4,emoji:'🌊',title:'Langkawi weekend',date:'2024-03-15',place:'Langkawi',lat:6.35,lng:99.8,activity:'Beach & cable car',note:'Watched the sunset from the cable car.'},
+  {id:5,emoji:'🍷',title:'Wine night',date:'2024-03-28',place:'Bukit Bintang, KL',lat:3.1478,lng:101.7133,activity:'Dinner & drinks',note:'Tried a new restaurant, loved it.'},
+];
+let wheelItems=JSON.parse(localStorage.getItem('pootates_wheel')||'null')||['Dinner date','Movie night','Hiking','Road trip','Cook at home','Picnic'];
+let bucketList=JSON.parse(localStorage.getItem('pootates_bucket')||'null')||[
+  {id:1,text:'Watch a sunrise together',done:false},
+  {id:2,text:'Visit 5 countries',done:false},
+  {id:3,text:'Learn to cook a new dish',done:true},
+  {id:4,text:'Go on a road trip',done:false},
+];
+
+let page='home', selected=null, form={}, dismissedBanner=false, deferredPrompt=null;
+let mapInstance=null, detailMapInstance=null, searchDebounce=null;
+let wheelSpinning=false, wheelAngle=0, wheelRAF=null;
+let openStatCard=null;
+
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(page==='home')render();});
+function saveMems(){try{localStorage.setItem('pootates_mems',JSON.stringify(mems));}catch(e){}}
+function saveWheel(){try{localStorage.setItem('pootates_wheel',JSON.stringify(wheelItems));}catch(e){}}
+function saveBucket(){try{localStorage.setItem('pootates_bucket',JSON.stringify(bucketList));}catch(e){}}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(d){if(!d)return'';const[y,m,dd]=d.split('-');const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${parseInt(dd)} ${mo[parseInt(m)-1]} ${y}`;}
+function fmtMonth(d){if(!d)return'';const[y,m]=d.split('-');const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${mo[parseInt(m)-1]} ${y}`;}
+function nowYM(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+
+/* ── Custom marker ── */
+function mkMarker(color,count){
+  const badge=count>1?`<div style="position:absolute;top:-4px;right:-4px;background:#fff;color:${color};font-size:9px;font-weight:800;border-radius:999px;padding:1px 4px;border:1.5px solid ${color};min-width:16px;text-align:center;">${count}</div>`:'';
+  return L.divIcon({className:'',html:`<div style="position:relative;width:28px;height:28px;"><div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:${color};border:2.5px solid #fff;transform:rotate(-45deg);"></div>${badge}</div>`,iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-30]});
+}
+
+/* ── Nav ── */
+function go(p){
+  page=p;form={};openStatCard=null;
+  if(mapInstance){mapInstance.remove();mapInstance=null;}
+  if(detailMapInstance){detailMapInstance.remove();detailMapInstance=null;}
+  render();
+}
+function setNav(p){['home','map','more','stats'].forEach(n=>{const el=document.getElementById('nav-'+n);if(el)el.className='nav-item'+(n===p?' active':'');});}
+
+function render(){
+  const s=document.getElementById('screen');
+  setNav(page);
+  if(page==='home')renderHome(s);
+  else if(page==='map')renderMap(s);
+  else if(page==='add')renderForm(s);
+  else if(page==='detail')renderDetail(s);
+  else if(page==='stats')renderStats(s);
+  else if(page==='more')renderMore(s);
+  else if(page==='wheel')renderWheel(s);
+  else if(page==='bucket')renderBucket(s);
+  s.scrollTop=0;
+}
+
+/* ── Icons ── */
+function ico(n){return{
+  pin:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  act:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>`,
+  back:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
+  close:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  edit:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  search:`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  smallpin:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  ext:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  locate:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`,
+  wheel:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>`,
+  bucket:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+}[n]||'';}
+
+/* ── Install banner ── */
+function installBanner(){
+  if(dismissedBanner||!deferredPrompt)return'';
+  return`<div class="install-banner"><div class="install-banner-text">Add Pootates to your home screen!</div><button class="install-btn" onclick="installApp()">Install</button><button class="dismiss-btn" onclick="dismissedBanner=true;render()">&times;</button></div>`;
+}
+async function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;dismissedBanner=true;render();}
+
+/* ── Home ── */
+function renderHome(s){
+  s.innerHTML=`
+    <div class="page-header"><div class="page-title">Pootates 💕</div><div class="page-sub">${mems.length} memory${mems.length!==1?'s':''} together</div></div>
+    ${installBanner()}
+    <div class="mem-list">
+      ${mems.length?mems.map(m=>`
+        <div class="mem-card" onclick="openDetail(${m.id})">
+          <div class="mem-emoji-box">${m.emoji||'💕'}</div>
+          <div class="mem-info">
+            <div class="mem-title">${esc(m.title)}</div>
+            <div class="mem-date">${fmt(m.date)}</div>
+            <div class="mem-tags">
+              ${m.place?`<span class="tag tag-place">${esc(m.place)}</span>`:''}
+              ${m.activity?`<span class="tag tag-activity">${esc(m.activity)}</span>`:''}
+            </div>
+          </div>
+          ${m.lat?`<div class="pin-icon">${ico('smallpin')}</div>`:''}
+        </div>`).join('')
+      :`<div class="empty"><div class="empty-icon">💕</div><h3>No memories yet</h3><p>Tap the + button to add your first memory together.</p></div>`}
+    </div>`;}
+
+/* ── Map page ── */
+function renderMap(s){
+  const pinned=mems.filter(m=>m.lat&&m.lng);
+  // Count per place
+  const placeCount={};
+  pinned.forEach(m=>{const k=`${m.lat.toFixed(3)},${m.lng.toFixed(3)}`;placeCount[k]=(placeCount[k]||0)+1;});
+  // Top places
+  const placeNames={};
+  pinned.forEach(m=>{const k=`${m.lat.toFixed(3)},${m.lng.toFixed(3)}`;if(!placeNames[k])placeNames[k]=m.place||k;});
+  const topPlaces=Object.entries(placeCount).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,c])=>({name:placeNames[k],count:c}));
+
+  s.innerHTML=`
+    <div class="page-header"><div class="page-title">Map</div><div class="page-sub">${pinned.length} place${pinned.length!==1?'s':''} visited</div></div>
+    <div class="map-wrap"><div id="lmap"></div></div>
+    ${topPlaces.length>1?`<div style="padding:10px 14px 2px;font-size:13px;font-weight:600;color:var(--ink2)">Most visited</div>
+    <div class="top-places">${topPlaces.map((p,i)=>`<div class="top-place-row"><span class="top-place-rank">${i+1}</span><span class="top-place-name">${esc(p.name)}</span><span class="top-place-count">${p.count}x</span></div>`).join('')}</div>`:''}
+    <div class="map-legend">${pinned.map((m,i)=>`<div class="legend-item" onclick="openDetail(${m.id})"><span class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></span>${esc(m.title)}</div>`).join('')}</div>
+    ${!pinned.length?`<div style="padding:0 14px;font-size:13px;color:var(--ink2)">Add coordinates to your memories to see them here.</div>`:''}`;
+
+  if(!pinned.length)return;
+  setTimeout(()=>{
+    const el=document.getElementById('lmap');
+    if(!el||!window.L)return;
+    const center=[pinned.reduce((a,m)=>a+m.lat,0)/pinned.length,pinned.reduce((a,m)=>a+m.lng,0)/pinned.length];
+    mapInstance=L.map(el,{zoomControl:true,attributionControl:true}).setView(center,pinned.length===1?13:6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',maxZoom:19}).addTo(mapInstance);
+    pinned.forEach((m,i)=>{
+      const k=`${m.lat.toFixed(3)},${m.lng.toFixed(3)}`;
+      const cnt=placeCount[k]||1;
+      const marker=L.marker([m.lat,m.lng],{icon:mkMarker(COLORS[i%COLORS.length],cnt)}).addTo(mapInstance);
+      marker.bindPopup(`<b>${m.emoji} ${m.title}</b><br><span style="color:#666;font-size:12px">${fmt(m.date)}</span>${m.place?`<br>${m.place}`:''}`);
+      marker.on('click',()=>marker.openPopup());
+    });
+    if(pinned.length>1){const bounds=L.latLngBounds(pinned.map(m=>[m.lat,m.lng]));mapInstance.fitBounds(bounds,{padding:[40,40]});}
+  },60);
+}
+
+/* ── Detail ── */
+function renderDetail(s){
+  const m=selected;
+  const osmUrl=m.lat?`https://www.openstreetmap.org/?mlat=${m.lat}&mlon=${m.lng}&zoom=15`:(m.place?`https://www.openstreetmap.org/search?query=${encodeURIComponent(m.place)}`:'');
+  s.innerHTML=`
+    <div class="back-row" onclick="go('home')">${ico('back')} Back</div>
+    <div class="detail-hero">
+      <div class="detail-emoji-big">${m.emoji||'💕'}</div>
+      <div><div class="detail-name">${esc(m.title)}</div><div class="detail-date">${fmt(m.date)}</div></div>
+    </div>
+    ${m.place?`<div class="detail-row"><div class="detail-row-icon">${ico('pin')}</div><div><div class="detail-row-label">Place</div><div class="detail-row-val">${esc(m.place)}${m.lat?`<br><span style="font-size:12px;color:var(--ink2)">${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}</span>`:''}</div></div></div>`:''}
+    ${m.lat?`<div class="detail-map-wrap"><div id="detail-lmap"></div></div>`:''}
+    ${m.activity?`<div class="detail-row"><div class="detail-row-icon">${ico('act')}</div><div><div class="detail-row-label">Activity</div><div class="detail-row-val">${esc(m.activity)}</div></div></div>`:''}
+    ${m.note?`<div class="detail-note">"${esc(m.note)}"</div>`:''}
+    <div class="detail-actions">
+      <button class="btn btn-danger" onclick="delMem(${m.id})">Delete</button>
+      ${osmUrl?`<button class="btn btn-maps" onclick="window.open('${osmUrl}','_blank')">${ico('ext')} Maps</button>`:''}
+      <button class="btn btn-secondary" onclick="openEdit(${m.id})">${ico('edit')} Edit</button>
+    </div>`;
+  if(m.lat){
+    setTimeout(()=>{
+      const el=document.getElementById('detail-lmap');
+      if(!el||!window.L)return;
+      detailMapInstance=L.map(el,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false}).setView([m.lat,m.lng],15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(detailMapInstance);
+      L.marker([m.lat,m.lng],{icon:mkMarker('#1a1a1a',1)}).addTo(detailMapInstance);
+    },60);
+  }
+}
+
+/* ── Form ── */
+function renderForm(s){
+  const ed=form.id!=null;
+  s.innerHTML=`
+    <div class="form-topbar">
+      <button class="icon-btn" onclick="go('home')" aria-label="Close">${ico('close')}</button>
+      <span class="form-topbar-title">${ed?'Edit memory':'New memory'}</span>
+    </div>
+    <div class="form-body">
+      <div class="f-label">Emoji</div>
+      <div class="emoji-grid">${EMOJIS.map(e=>`<div class="emoji-opt${(form.emoji||'💕')===e?' sel':''}" onclick="form.emoji='${e}';render()">${e}</div>`).join('')}</div>
+      <div class="f-label">Title *</div>
+      <input class="f-input" id="f-title" value="${esc(form.title||'')}" placeholder="e.g. Our first trip together" oninput="form.title=this.value"/>
+      <div class="f-label">Date</div>
+      <input class="f-input" type="date" id="f-date" value="${form.date||''}" oninput="form.date=this.value"/>
+      <div class="f-label">Search place</div>
+      <input class="f-input" id="f-place-search" value="${esc(form.place||'')}" placeholder="Type to search a place..." autocomplete="off" oninput="onPlaceSearch(this.value)" style="margin-bottom:6px"/>
+      <div class="search-results" id="place-results"></div>
+      <button class="locate-btn" onclick="useMyLocation()">${ico('locate')} Use my current location</button>
+      <div class="f-label">Coordinates</div>
+      <div class="coord-row">
+        <input class="f-input" id="f-lat" value="${form.lat||''}" placeholder="Latitude" oninput="form.lat=this.value"/>
+        <input class="f-input" id="f-lng" value="${form.lng||''}" placeholder="Longitude" oninput="form.lng=this.value"/>
+      </div>
+      <div class="coord-hint">Auto-filled when you pick a place above.</div>
+      <div class="f-label">Activity</div>
+      <input class="f-input" id="f-activity" value="${esc(form.activity||'')}" placeholder="e.g. Hiking, dinner, movie" oninput="form.activity=this.value"/>
+      <div class="f-label">Notes</div>
+      <textarea class="f-textarea" id="f-note" placeholder="Any little detail to remember..." oninput="form.note=this.value">${esc(form.note||'')}</textarea>
+      <button class="save-btn" onclick="saveMem()">Save memory</button>
+    </div>`;}
+
+function onPlaceSearch(val){
+  clearTimeout(searchDebounce);
+  const results=document.getElementById('place-results');
+  if(!results)return;
+  if(val.trim().length<3){results.style.display='none';return;}
+  searchDebounce=setTimeout(async()=>{
+    try{
+      const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5`,{headers:{'Accept-Language':'en'}});
+      const data=await res.json();
+      if(!data.length){results.style.display='none';return;}
+      results.innerHTML=data.map(r=>`<div class="search-result-item" onclick="pickPlace('${esc(r.display_name)}',${r.lat},${r.lon})"><div class="search-result-name">${esc(r.display_name.split(',')[0])}</div><div class="search-result-addr">${esc(r.display_name.split(',').slice(1,3).join(',').trim())}</div></div>`).join('');
+      results.style.display='block';
+    }catch(e){results.style.display='none';}
+  },400);
+}
+
+function pickPlace(name,lat,lng){
+  const shortName=name.split(',')[0].trim();
+  form.place=shortName;form.lat=parseFloat(parseFloat(lat).toFixed(6));form.lng=parseFloat(parseFloat(lng).toFixed(6));
+  const si=document.getElementById('f-place-search');const latEl=document.getElementById('f-lat');const lngEl=document.getElementById('f-lng');const res=document.getElementById('place-results');
+  if(si)si.value=shortName;if(latEl)latEl.value=form.lat;if(lngEl)lngEl.value=form.lng;if(res)res.style.display='none';
+}
+
+function useMyLocation(){
+  if(!navigator.geolocation){alert('Geolocation not supported.');return;}
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    form.lat=parseFloat(pos.coords.latitude.toFixed(6));form.lng=parseFloat(pos.coords.longitude.toFixed(6));
+    const latEl=document.getElementById('f-lat');const lngEl=document.getElementById('f-lng');
+    if(latEl)latEl.value=form.lat;if(lngEl)lngEl.value=form.lng;
+    try{
+      const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${form.lat}&lon=${form.lng}`,{headers:{'Accept-Language':'en'}});
+      const data=await res.json();
+      if(data&&data.address){const a=data.address;form.place=a.amenity||a.tourism||a.road||a.suburb||a.city||data.display_name.split(',')[0];const si=document.getElementById('f-place-search');if(si)si.value=form.place;}
+    }catch(e){}
+  },()=>alert('Could not get location. Please check permissions.'));
+}
+
+/* ── Stats ── */
+function renderStats(s){
+  const total=mems.length,pinned=mems.filter(m=>m.lat&&m.lng).length;
+  const places=[...new Set(mems.map(m=>m.place).filter(Boolean))].length;
+  const ym=nowYM();
+  const thisMonth=mems.filter(m=>m.date&&m.date.startsWith(ym));
+  const allMonths=[...new Set(mems.map(m=>m.date?.substring(0,7)).filter(Boolean))].sort().reverse();
+  const allYears=[...new Set(mems.map(m=>m.date?.split('-')[0]).filter(Boolean))].sort().reverse();
+
+  const statCards=[
+    {id:'memories',icon:'💕',val:total,label:'Memories',bg:'#f5f5f5',col:'#1a1a1a',list:mems},
+    {id:'onmap',icon:'📍',val:pinned,label:'On map',bg:'#E6F1FB',col:'#0C447C',list:mems.filter(m=>m.lat&&m.lng)},
+    {id:'places',icon:'🏙️',val:places,label:'Places',bg:'#EAF3DE',col:'#27500A',list:null},
+    {id:'thismonth',icon:'📅',val:thisMonth.length,label:'This month',bg:'#EEEDFE',col:'#3C3489',list:thisMonth},
+  ];
+
+  // Month summary for current month
+  const monthActivities=thisMonth.map(m=>m.activity).filter(Boolean);
+  const monthPlaces=thisMonth.map(m=>m.place).filter(Boolean);
+  const uniqueMonthPlaces=[...new Set(monthPlaces)];
+
+  s.innerHTML=`
+    <div class="page-header"><div class="page-title">Stats</div><div class="page-sub">Your journey together</div></div>
+    <div class="stats-grid">
+      ${statCards.map(c=>`<div class="stat-card${openStatCard===c.id?' active-card':''}" style="background:${c.bg}" onclick="toggleStatCard('${c.id}')">
+        <div class="stat-icon">${c.icon}</div>
+        <div class="stat-val" style="color:${c.col}">${c.val}</div>
+        <div class="stat-label" style="color:${c.col}">${c.label}</div>
+      </div>`).join('')}
+    </div>
+
+    ${statCards.map(c=>{
+      if(!c.list||!c.list.length)return`<div class="stat-detail-panel${openStatCard===c.id?' open':''}" id="panel-${c.id}"><div style="font-size:13px;color:var(--ink2)">Nothing to show yet.</div></div>`;
+      return`<div class="stat-detail-panel${openStatCard===c.id?' open':''}" id="panel-${c.id}">
+        ${c.list.map(m=>`<div class="stat-mem-item" onclick="openDetail(${m.id})"><div class="stat-mem-emoji">${m.emoji||'💕'}</div><div class="stat-mem-info"><div class="stat-mem-title">${esc(m.title)}</div><div class="stat-mem-date">${fmt(m.date)}${m.place?` · ${esc(m.place)}`:''}</div></div></div>`).join('')}
+      </div>`;
+    }).join('')}
+
+    ${thisMonth.length?`
+    <div class="section-block">
+      <div class="section-title">This month — ${fmtMonth(ym)}</div>
+      <div class="month-summary">
+        <div class="month-summary-title">What we did together 💕</div>
+        ${thisMonth.length?`<div class="month-summary-row"><div class="month-summary-dot"></div><div>${thisMonth.length} memor${thisMonth.length===1?'y':'ies'} created this month</div></div>`:''}
+        ${uniqueMonthPlaces.length?`<div class="month-summary-row"><div class="month-summary-dot"></div><div>Visited: ${uniqueMonthPlaces.map(p=>`<strong>${esc(p)}</strong>`).join(', ')}</div></div>`:''}
+        ${monthActivities.length?`<div class="month-summary-row"><div class="month-summary-dot"></div><div>Activities: ${monthActivities.map(a=>`<em>${esc(a)}</em>`).join(', ')}</div></div>`:''}
+        ${thisMonth.map(m=>m.note).filter(Boolean).slice(0,2).map(n=>`<div class="month-summary-row"><div class="month-summary-dot"></div><div style="font-style:italic;color:var(--ink2)">"${esc(n)}"</div></div>`).join('')}
+      </div>
+    </div>`:''}
+
+    <div class="section-block">
+      <div class="section-title">Memories by month</div>
+      ${allMonths.slice(0,12).map(ym=>{const c=mems.filter(m=>m.date?.startsWith(ym)).length;return`<div class="bar-row"><span class="bar-label">${fmtMonth(ym)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round((c/total)*100)}%"></div></div><span class="bar-count">${c}</span></div>`;}).join('')}
+    </div>
+
+    <div class="section-block">
+      <div class="section-title">Memories by year</div>
+      ${allYears.map(y=>{const c=mems.filter(m=>m.date?.startsWith(y)).length;return`<div class="bar-row"><span class="bar-label">${y}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round((c/total)*100)}%"></div></div><span class="bar-count">${c}</span></div>`;}).join('')}
+    </div>
+
+    ${mems.some(m=>m.activity)?`<div class="section-block"><div class="section-title">Activities</div><div class="chip-wrap">${mems.filter(m=>m.activity).slice(0,10).map(m=>`<span class="tag tag-activity">${esc(m.activity)}</span>`).join('')}</div></div>`:''}
+  `;}
+
+function toggleStatCard(id){
+  openStatCard=openStatCard===id?null:id;
+  // just toggle panels without full re-render
+  ['memories','onmap','places','thismonth'].forEach(c=>{
+    const card=document.querySelector(`.stat-card:nth-child(${['memories','onmap','places','thismonth'].indexOf(c)+1})`);
+    const panel=document.getElementById('panel-'+c);
+    if(panel)panel.className='stat-detail-panel'+(openStatCard===c?' open':'');
+  });
+  // Re-render stats to update active-card highlight
+  renderStats(document.getElementById('screen'));
+}
+
+/* ── More page ── */
+function renderMore(s){
+  s.innerHTML=`
+    <div class="page-header"><div class="page-title">More</div></div>
+    <div style="padding:6px 14px;">
+      <div class="mem-card" style="margin-bottom:10px" onclick="go('wheel')">
+        <div class="mem-emoji-box" style="font-size:22px">${ico('wheel')}</div>
+        <div class="mem-info"><div class="mem-title">Spin the wheel</div><div class="mem-date">Can't decide? Let fate choose your date!</div></div>
+      </div>
+      <div class="mem-card" style="margin-bottom:10px" onclick="go('bucket')">
+        <div class="mem-emoji-box" style="font-size:22px">${ico('bucket')}</div>
+        <div class="mem-info"><div class="mem-title">Bucket list</div><div class="mem-date">${bucketList.filter(b=>!b.done).length} things left to do together</div></div>
+      </div>
+    </div>`;}
+
+/* ── Spin the Wheel ── */
+function renderWheel(s){
+  s.innerHTML=`
+    <div class="back-row" onclick="go('more')">${ico('back')} Back</div>
+    <div class="page-header" style="padding-top:4px"><div class="page-title">Spin the wheel</div><div class="page-sub">Let fate decide your next date!</div></div>
+    <div class="wheel-wrap">
+      <div class="wheel-canvas-wrap">
+        <div class="wheel-pointer"></div>
+        <canvas id="wheel-canvas" width="280" height="280"></canvas>
+      </div>
+      <div class="wheel-result" id="wheel-result"></div>
+      <button class="spin-btn" id="spin-btn" onclick="spinWheel()">Spin!</button>
+      <div class="wheel-items-title">Options (edit below)</div>
+      <div id="wheel-item-list"></div>
+      <button class="wheel-add-btn" onclick="addWheelItem()">+ Add option</button>
+    </div>`;
+  renderWheelItems();
+  drawWheel();
+}
+
+function renderWheelItems(){
+  const el=document.getElementById('wheel-item-list');
+  if(!el)return;
+  el.innerHTML=wheelItems.map((item,i)=>`
+    <div class="wheel-item-row">
+      <input class="wheel-item-input" value="${esc(item)}" oninput="wheelItems[${i}]=this.value;saveWheel();drawWheel()" placeholder="Option ${i+1}"/>
+      <button class="wheel-remove-btn" onclick="removeWheelItem(${i})" aria-label="Remove">&times;</button>
+    </div>`).join('');
+}
+
+function addWheelItem(){wheelItems.push('');saveWheel();renderWheel(document.getElementById('screen'));setTimeout(()=>{const inputs=document.querySelectorAll('.wheel-item-input');if(inputs.length)inputs[inputs.length-1].focus();},60);}
+function removeWheelItem(i){if(wheelItems.length<=2){alert('Need at least 2 options!');return;}wheelItems.splice(i,1);saveWheel();renderWheel(document.getElementById('screen'));}
+
+function drawWheel(highlightIdx=-1){
+  const canvas=document.getElementById('wheel-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const cx=140,cy=140,r=130;
+  const n=wheelItems.length;
+  const slice=(2*Math.PI)/n;
+  const grays=['#1a1a1a','#3a3a3a','#5a5a5a','#7a7a7a','#9a9a9a','#bbb','#ddd','#444','#666','#888'];
+  ctx.clearRect(0,0,280,280);
+  wheelItems.forEach((item,i)=>{
+    const start=wheelAngle+i*slice-Math.PI/2;
+    const end=start+slice;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,end);ctx.closePath();
+    ctx.fillStyle=i===highlightIdx?'#fff':grays[i%grays.length];
+    ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    // text
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(start+slice/2);ctx.textAlign='right';
+    ctx.fillStyle=i===highlightIdx?'#1a1a1a':'#fff';
+    ctx.font=`${Math.min(13,Math.max(9,120/n))}px -apple-system,sans-serif`;
+    const label=item.length>14?item.slice(0,13)+'…':item;
+    ctx.fillText(label,r-10,4);ctx.restore();
+  });
+  ctx.beginPath();ctx.arc(cx,cy,18,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#ddd';ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function spinWheel(){
+  if(wheelSpinning||wheelItems.filter(i=>i.trim()).length<2)return;
+  wheelSpinning=true;
+  document.getElementById('spin-btn').disabled=true;
+  const resultEl=document.getElementById('wheel-result');
+  if(resultEl)resultEl.style.display='none';
+  const extraSpins=5+Math.random()*5;
+  const targetAngle=wheelAngle+extraSpins*2*Math.PI+Math.random()*2*Math.PI;
+  const duration=3000+Math.random()*1000;
+  const start=performance.now();
+  const startAngle=wheelAngle;
+  function animate(now){
+    const elapsed=now-start;
+    const progress=Math.min(elapsed/duration,1);
+    const ease=1-Math.pow(1-progress,4);
+    wheelAngle=startAngle+(targetAngle-startAngle)*ease;
+    drawWheel();
+    if(progress<1){wheelRAF=requestAnimationFrame(animate);}
+    else{
+      wheelAngle=targetAngle%(2*Math.PI);
+      const n=wheelItems.length;
+      const slice=2*Math.PI/n;
+      // pointer is at top (12 o'clock) = angle 0 from top
+      const normalized=(((-wheelAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI));
+      const idx=Math.floor(normalized/slice)%n;
+      const winner=wheelItems[idx]||wheelItems[0];
+      drawWheel(idx);
+      wheelSpinning=false;
+      document.getElementById('spin-btn').disabled=false;
+      const el=document.getElementById('wheel-result');
+      if(el){el.textContent=`🎉 ${winner}!`;el.style.display='block';}
+    }
+  }
+  wheelRAF=requestAnimationFrame(animate);
+}
+
+/* ── Bucket List ── */
+function renderBucket(s){
+  const todo=bucketList.filter(b=>!b.done);
+  const done=bucketList.filter(b=>b.done);
+  s.innerHTML=`
+    <div class="back-row" onclick="go('more')">${ico('back')} Back</div>
+    <div class="page-header" style="padding-top:4px"><div class="page-title">Bucket list</div><div class="page-sub">${todo.length} to go · ${done.length} done</div></div>
+    <div class="bucket-wrap">
+      <div class="bucket-add-row">
+        <input class="bucket-add-input" id="bucket-input" placeholder="Add something new..." onkeydown="if(event.key==='Enter')addBucketItem()"/>
+        <button class="bucket-add-btn" onclick="addBucketItem()">Add</button>
+      </div>
+      ${todo.length?`<div class="bucket-section-title">To do</div>${todo.map(b=>`
+        <div class="bucket-item" onclick="toggleBucket(${b.id})">
+          <div class="bucket-check">${b.done?'✓':''}</div>
+          <div class="bucket-text">${esc(b.text)}</div>
+          <button class="bucket-del" onclick="event.stopPropagation();deleteBucket(${b.id})">&times;</button>
+        </div>`).join('')}`:''}
+      ${done.length?`<div class="bucket-section-title">Done ✓</div>${done.map(b=>`
+        <div class="bucket-item done" onclick="toggleBucket(${b.id})">
+          <div class="bucket-check checked">✓</div>
+          <div class="bucket-text">${esc(b.text)}</div>
+          <button class="bucket-del" onclick="event.stopPropagation();deleteBucket(${b.id})">&times;</button>
+        </div>`).join('')}`:''}
+    </div>`;}
+
+function addBucketItem(){
+  const el=document.getElementById('bucket-input');
+  const text=(el?.value||'').trim();
+  if(!text)return;
+  bucketList.unshift({id:Date.now(),text,done:false});
+  saveBucket();renderBucket(document.getElementById('screen'));
+}
+function toggleBucket(id){const b=bucketList.find(x=>x.id===id);if(b){b.done=!b.done;saveBucket();renderBucket(document.getElementById('screen'));}}
+function deleteBucket(id){bucketList=bucketList.filter(x=>x.id!==id);saveBucket();renderBucket(document.getElementById('screen'));}
+
+
+/* ── CRUD ── */
+function openDetail(id){selected=mems.find(m=>m.id===id);page='detail';if(mapInstance){mapInstance.remove();mapInstance=null;}render();}
+function openEdit(id){form={...mems.find(x=>x.id===id)};page='add';render();}
+function delMem(id){if(!confirm('Remove this memory?'))return;mems=mems.filter(m=>m.id!==id);saveMems();go('home');}
+function saveMem(){
+  const title=(document.getElementById('f-title')?.value||'').trim();
+  if(!title){alert('Please add a title.');return;}
+  const lat=parseFloat(document.getElementById('f-lat')?.value);
+  const lng=parseFloat(document.getElementById('f-lng')?.value);
+  const mem={...form,title,date:document.getElementById('f-date')?.value||'',place:document.getElementById('f-place-search')?.value||form.place||'',lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng,activity:document.getElementById('f-activity')?.value||'',note:document.getElementById('f-note')?.value||'',emoji:form.emoji||'💕'};
+  if(mem.id!=null){const i=mems.findIndex(m=>m.id===mem.id);if(i>=0)mems[i]=mem;}
+  else{mem.id=Date.now();mems.unshift(mem);}
+  saveMems();go('home');
+}
+
+/* ── Clock ── */
+function tick(){const n=new Date();const el=document.getElementById('clock');if(el)el.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;}
+tick();setInterval(tick,10000);
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+render();
+</script>
+</body>
+</html>
