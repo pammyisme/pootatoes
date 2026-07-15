@@ -1,7 +1,7 @@
 {
-  "name": "Pootates",
-  "short_name": "Pootates",
-  "description": "Our couple memory app",
+  "name": "Pootatoes",
+  "short_name": "Pootatoes",
+  "description": "Our couple app",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
