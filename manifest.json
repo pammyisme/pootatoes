@@ -1,11 +1,11 @@
 {
   "name": "Pootatoes",
   "short_name": "Pootatoes",
-  "description": "Our couple app",
+  "description": "Our couple app 🍋🥑",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1a1a1a",
+  "background_color": "#FFFDF5",
+  "theme_color": "#6B9E6B",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
