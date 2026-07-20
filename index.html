@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="theme-color" content="#FEFCE8"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Pootatoes"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <title>Pootatoes 🥔</title>
+  <style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+:root{
+  --y:#F5C842;--y2:#FFF8D6;--y3:#FEF3A0;
+  --g:#6B9E6B;--g2:#E8F5E8;--g3:#C8E6C8;
+  --bg:#FFFDF5;--bg2:#F7F4E8;--bg3:#EEE9D4;
+  --ink:#2D2A1E;--ink2:#6B6552;--ink3:#AAA090;
+  --border:rgba(107,149,107,0.2);--border2:rgba(107,149,107,0.35);
+  --r:14px;--rl:20px;--rx:26px;
+  --shadow:0 2px 12px rgba(107,149,107,0.12);
+}
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:90px;}
+.navbar{position:absolute;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);display:flex;align-items:center;padding:8px 0 max(12px,env(safe-area-inset-bottom));z-index:100;box-shadow:0 -4px 20px rgba(107,149,107,0.08);}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--ink3);font-size:10px;user-select:none;transition:color 0.2s;}
+.ni.active{color:var(--g);}
+.ni svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.fab-wrap{flex:0.8;display:flex;justify-content:center;}
+.fab{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--y),var(--g));display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:-20px;border:3px solid var(--bg);box-shadow:0 4px 16px rgba(107,149,107,0.3);}
+.fab svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+/* LOGIN */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:40px 24px;background:linear-gradient(160deg,var(--y2) 0%,var(--g2) 100%);}
+.login-logo{font-size:56px;margin-bottom:8px;}
+.login-title{font-size:28px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.login-sub{font-size:14px;color:var(--ink2);margin-bottom:40px;}
+.login-options{display:flex;gap:16px;margin-bottom:40px;width:100%;}
+.login-opt{flex:1;background:var(--bg);border-radius:var(--rl);padding:24px 16px;text-align:center;cursor:pointer;border:2.5px solid transparent;transition:all 0.2s;box-shadow:var(--shadow);}
+.login-opt:active{transform:scale(0.97);}
+.login-opt.selected{border-color:var(--g);}
+.login-opt-emoji{font-size:40px;margin-bottom:8px;}
+.login-opt-name{font-size:16px;font-weight:600;color:var(--ink);}
+.pin-section{width:100%;display:none;}
+.pin-section.show{display:block;}
+.pin-title{font-size:16px;font-weight:600;color:var(--ink);text-align:center;margin-bottom:20px;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:28px;}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--border2);background:transparent;transition:all 0.2s;}
+.pin-dot.filled{background:var(--g);border-color:var(--g);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto;}
+.pin-key{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;font-size:20px;font-weight:600;color:var(--ink);cursor:pointer;text-align:center;transition:all 0.15s;box-shadow:var(--shadow);}
+.pin-key:active{background:var(--g2);transform:scale(0.95);}
+.pin-key.del{font-size:16px;color:var(--ink2);}
+.pin-error{color:#E53E3E;font-size:13px;text-align:center;margin-top:12px;min-height:20px;}
+/* HEADERS */
+.ph{padding:16px 16px 10px;}
+.ph-title{font-size:24px;font-weight:700;color:var(--ink);}
+.ph-sub{font-size:13px;color:var(--ink2);margin-top:2px;}
+.back-row{padding:10px 14px;display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--g);font-size:14px;font-weight:500;}
+/* HERO */
+.home-hero{position:relative;margin:12px 14px;border-radius:var(--rl);overflow:hidden;background:linear-gradient(135deg,var(--y2),var(--g2));min-height:180px;display:flex;align-items:center;justify-content:center;}
+.home-hero-img{width:100%;height:200px;object-fit:cover;display:block;}
+.home-hero-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;min-height:180px;}
+.home-hero-emojis{font-size:48px;margin-bottom:8px;}
+.home-hero-label{font-size:14px;color:var(--ink2);}
+.hero-edit-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.85);border:none;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;}
+.home-user-badge{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,0.9);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:5px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0;}
+/* WIDGETS */
+.home-widgets{padding:0 14px;display:flex;flex-direction:column;gap:10px;}
+.widget{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:14px;box-shadow:var(--shadow);}
+.widget-title{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+.ny-countdown{text-align:center;padding:6px 0;}
+.ny-days{font-size:48px;font-weight:800;color:var(--g);line-height:1;}
+.ny-label{font-size:13px;color:var(--ink2);margin-top:4px;}
+.ny-bar{background:var(--bg2);border-radius:999px;height:6px;overflow:hidden;margin-top:10px;}
+.ny-bar-fill{background:linear-gradient(90deg,var(--y),var(--g));height:100%;border-radius:999px;}
+.song-widget{display:flex;align-items:center;gap:12px;}
+.song-widget-ico{font-size:28px;flex-shrink:0;}
+.song-widget-info{flex:1;min-width:0;}
+.song-widget-title{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.song-widget-artist{font-size:12px;color:var(--ink2);}
+.song-widget-link{background:var(--g2);border:none;border-radius:999px;padding:5px 12px;font-size:12px;color:var(--g);cursor:pointer;font-family:inherit;font-weight:600;flex-shrink:0;}
+.event-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.event-row:last-child{border-bottom:none;}
+.event-days{min-width:40px;text-align:center;}
+.event-days-num{font-size:18px;font-weight:700;color:var(--g);}
+.event-days-lbl{font-size:10px;color:var(--ink3);}
+.event-info{flex:1;}
+.event-name{font-size:14px;font-weight:500;color:var(--ink);}
+.event-date{font-size:11px;color:var(--ink2);}
+.quote-text{font-size:15px;color:var(--ink);line-height:1.6;font-style:italic;text-align:center;}
+.quote-loading{font-size:13px;color:var(--ink3);text-align:center;padding:8px 0;}
+/* ENTRY CARDS */
+.entry-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:13px;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow);}
+.entry-card:active{background:var(--bg2);}
+.entry-card-top{display:flex;gap:10px;align-items:flex-start;}
+.entry-type-badge{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.entry-info{flex:1;min-width:0;}
+.entry-title{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.entry-meta{font-size:12px;color:var(--ink2);margin:2px 0 5px;}
+.entry-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500;}
+.tag-type{background:var(--y2);color:#6B5C2E;}
+.tag-place{background:#E6F1FB;color:#0C447C;}
+.tag-budget{background:var(--g2);color:var(--g);}
+.entry-photo{width:60px;height:60px;border-radius:10px;object-fit:cover;flex-shrink:0;}
+/* ADD MENU */
+.add-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:flex;flex-direction:column;justify-content:flex-end;}
+.add-sheet{background:var(--bg);border-radius:var(--rx) var(--rx) 0 0;padding:20px 16px max(24px,env(safe-area-inset-bottom));}
+.add-sheet-title{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;text-align:center;}
+.add-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.add-item{background:var(--bg2);border-radius:var(--r);padding:14px 8px;text-align:center;cursor:pointer;border:1.5px solid var(--border);}
+.add-item:active{background:var(--g2);}
+.add-item-ico{font-size:26px;margin-bottom:5px;}
+.add-item-label{font-size:11px;font-weight:500;color:var(--ink2);}
+.add-close{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:13px;font-size:15px;font-weight:500;color:var(--ink2);cursor:pointer;font-family:inherit;}
+/* FORM */
+.form-bar{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg);position:sticky;top:0;z-index:10;}
+.form-bar-title{font-size:16px;font-weight:600;color:var(--ink);flex:1;}
+.ico-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid var(--border);background:transparent;cursor:pointer;color:var(--ink2);}
+.form-body{padding:12px 14px 90px;}
+.fl{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px;}
+.fi{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:14px;color:var(--ink);font-family:inherit;margin-bottom:10px;outline:none;}
+.fi:focus{border-color:var(--g);}
+.fta{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:14px;color:var(--ink);font-family:inherit;resize:none;min-height:75px;outline:none;}
+.fta:focus{border-color:var(--g);}
+.photo-upload-row{display:flex;gap:8px;margin-bottom:10px;}
+.photo-slot{width:80px;height:80px;border-radius:10px;border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:var(--bg2);flex-shrink:0;}
+.photo-slot img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-slot-ico{font-size:22px;pointer-events:none;}
+.photo-slot-rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+.place-results{background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-top:-8px;margin-bottom:10px;display:none;z-index:50;position:relative;}
+.place-result-item{padding:9px 12px;font-size:13px;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--border);}
+.place-result-item:last-child{border-bottom:none;}
+.place-result-item:active{background:var(--g2);}
+.pri-name{font-weight:500;}
+.pri-addr{font-size:11px;color:var(--ink2);margin-top:1px;}
+.loc-btn{width:100%;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r);padding:10px;font-size:13px;color:var(--ink2);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:10px;}
+.coord-row{display:flex;gap:7px;margin-bottom:4px;}
+.coord-row .fi{margin-bottom:0;flex:1;}
+.coord-hint{font-size:11px;color:var(--ink3);margin-bottom:10px;margin-top:4px;}
+.save-btn{width:100%;background:var(--g);border:none;border-radius:var(--rl);padding:14px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;margin-top:5px;font-family:inherit;}
+.save-btn:active{opacity:0.85;}
+.save-btn:disabled{opacity:0.6;}
+/* SUBCATEGORY CHIPS */
+.subcat-wrap{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+.subcat-chip{padding:6px 13px;border-radius:999px;font-size:13px;cursor:pointer;border:1.5px solid var(--border);background:var(--bg2);color:var(--ink2);font-family:inherit;}
+.subcat-chip.sel{background:var(--g);color:#fff;border-color:var(--g);}
+/* DETAIL */
+.det-hero{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;}
+.det-ebox{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+.det-name{font-size:19px;font-weight:700;color:var(--ink);}
+.det-date{font-size:12px;color:var(--ink2);margin-top:3px;}
+.det-row{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;}
+.det-label{font-size:11px;color:var(--ink2);margin-bottom:2px;}
+.det-val{font-size:14px;color:var(--ink);line-height:1.5;}
+.det-note{padding:14px 16px;font-size:14px;color:var(--ink2);line-height:1.6;font-style:italic;border-bottom:1px solid var(--border);}
+.det-photos{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.det-photos img{width:90px;height:90px;border-radius:10px;object-fit:cover;cursor:pointer;}
+.det-actions{padding:14px 16px;display:flex;gap:8px;}
+.btn{flex:1;border-radius:var(--r);padding:11px;font-size:14px;cursor:pointer;text-align:center;font-weight:500;border:none;display:flex;align-items:center;justify-content:center;gap:5px;}
+.btn-pri{background:var(--g);color:#fff;}
+.btn-sec{background:var(--bg2);color:var(--ink);}
+.btn-dan{background:#FCEBEB;color:#A32D2D;}
+.btn:active{opacity:0.75;}
+.dlmap-wrap{margin:0 16px 4px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);}
+#dlmap{width:100%;height:170px;z-index:1;}
+/* STATS */
+.stat-spend-card{background:linear-gradient(135deg,var(--y2),var(--g2));border-radius:var(--rl);margin:0 14px 12px;padding:16px;}
+.stat-spend-total{font-size:32px;font-weight:800;color:var(--ink);}
+.stat-spend-lbl{font-size:12px;color:var(--ink2);margin-top:2px;}
+.stat-period-tabs{display:flex;gap:6px;margin-top:10px;}
+.stat-period-tab{flex:1;padding:6px;border-radius:var(--r);border:1.5px solid var(--border);background:transparent;font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;font-family:inherit;text-align:center;}
+.stat-period-tab.active{background:var(--g);color:#fff;border-color:var(--g);}
+.stat-type-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);}
+.stat-type-ico{font-size:20px;width:30px;text-align:center;}
+.stat-type-info{flex:1;}
+.stat-type-name{font-size:13px;font-weight:500;color:var(--ink);}
+.stat-type-count{font-size:11px;color:var(--ink2);}
+.stat-type-amt{font-size:14px;font-weight:600;color:var(--g);}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.bar-lbl{font-size:12px;color:var(--ink2);width:72px;flex-shrink:0;}
+.bar-track{flex:1;background:var(--bg2);border-radius:4px;height:7px;overflow:hidden;}
+.bar-fill{background:linear-gradient(90deg,var(--y),var(--g));height:100%;border-radius:4px;}
+.bar-cnt{font-size:11px;color:var(--ink2);width:40px;text-align:right;}
+.sec-block{padding:0 14px 14px;}
+.sec-title{font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:8px;}
+/* NOTES */
+.notes-tab-wrap{padding:6px 14px;}
+.notes-feature-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.notes-feature-card:active{background:var(--bg2);}
+.nfc-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.nfc-info{flex:1;}
+.nfc-title{font-size:15px;font-weight:600;color:var(--ink);}
+.nfc-sub{font-size:12px;color:var(--ink2);margin-top:2px;}
+.nfc-arrow{color:var(--ink3);font-size:18px;}
+/* CALENDAR */
+.cal-wrap{padding:0 14px;}
+.cal-view-toggle{display:flex;gap:6px;margin-bottom:14px;}
+.cal-view-btn{flex:1;padding:8px;border-radius:var(--r);border:1.5px solid var(--border);background:transparent;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;font-family:inherit;}
+.cal-view-btn.active{background:var(--g);color:#fff;border-color:var(--g);}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-month{font-size:18px;font-weight:700;color:var(--ink);}
+.cal-nav{background:transparent;border:1.5px solid var(--border);border-radius:var(--r);width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:14px;}
+.cal-day-name{text-align:center;font-size:11px;font-weight:600;color:var(--ink3);padding:4px 0;}
+.cal-day{text-align:center;padding:6px 2px;font-size:13px;color:var(--ink2);cursor:pointer;border-radius:8px;position:relative;}
+.cal-day.today{background:var(--y);color:var(--ink);font-weight:700;}
+.cal-day.selected-day{background:var(--g);color:#fff;font-weight:700;}
+.cal-day.has-event::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--g);}
+.cal-day.other-month{color:var(--ink3);}
+.cal-event-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.cal-event-dot{width:10px;height:10px;border-radius:50%;background:var(--g);flex-shrink:0;}
+.cal-event-info{flex:1;}
+.cal-event-name{font-size:14px;font-weight:500;color:var(--ink);}
+.cal-event-date{font-size:11px;color:var(--ink2);}
+.cal-gcal-btn{width:100%;background:var(--g2);border:1.5px solid var(--border2);border-radius:var(--r);padding:11px;font-size:13px;font-weight:500;color:var(--g);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;text-decoration:none;}
+.week-grid{display:flex;flex-direction:column;gap:8px;}
+.week-row{display:flex;gap:10px;align-items:flex-start;}
+.week-day-label{width:36px;flex-shrink:0;text-align:right;}
+.week-day-name{font-size:11px;font-weight:600;color:var(--ink3);}
+.week-day-num{font-size:18px;font-weight:700;color:var(--ink2);}
+.week-day-num.today{color:var(--g);}
+.week-events{flex:1;display:flex;flex-direction:column;gap:5px;padding:2px 0;}
+.week-event{background:var(--g2);border-left:3px solid var(--g);border-radius:0 8px 8px 0;padding:6px 10px;font-size:13px;color:var(--ink);}
+.week-empty{font-size:12px;color:var(--ink3);padding:6px 0;}
+/* MISC */
+.feat-wrap{padding:6px 14px 10px;}
+.cd-add-form{background:var(--bg2);border-radius:var(--rl);padding:14px;margin-bottom:10px;}
+.cd-add-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px;}
+.cd-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:14px;margin-bottom:9px;box-shadow:var(--shadow);}
+.cd-days{font-size:32px;font-weight:700;color:var(--g);margin:6px 0 2px;}
+.cd-days-lbl{font-size:12px;color:var(--ink2);}
+.jar-reveal{background:linear-gradient(135deg,var(--y2),var(--g2));border-radius:var(--rl);padding:24px;text-align:center;margin-bottom:14px;min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.jar-note-text{font-size:15px;color:var(--ink);font-style:italic;line-height:1.6;}
+.jar-from{font-size:12px;color:var(--ink2);}
+.shake-btn{width:100%;background:linear-gradient(135deg,var(--y),var(--g));border:none;border-radius:var(--rl);padding:13px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;margin-bottom:14px;}
+.song-card{background:linear-gradient(135deg,var(--y2),var(--g2));border-radius:var(--rl);padding:20px;text-align:center;margin-bottom:14px;}
+.song-card-note{font-size:40px;margin-bottom:8px;}
+.song-card-title{font-size:18px;font-weight:700;color:var(--ink);}
+.song-card-artist{font-size:13px;color:var(--ink2);margin-top:3px;}
+.song-link{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:13px;color:var(--g);text-decoration:none;font-weight:500;}
+.checkin-hero{background:linear-gradient(135deg,var(--y2),var(--g2));border-radius:var(--rl);margin:12px 14px;padding:24px;text-align:center;}
+.checkin-begin-btn{background:var(--g);border:none;border-radius:var(--rl);padding:13px 28px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;}
+.past-checkin-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;margin-bottom:8px;display:flex;flex-direction:column;gap:4px;cursor:pointer;box-shadow:var(--shadow);}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:999;padding:16px;}
+.lightbox img{max-width:100%;max-height:90vh;border-radius:10px;object-fit:contain;}
+.lightbox-close{position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;cursor:pointer;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
+.empty{text-align:center;padding:50px 20px;}
+.empty-ico{font-size:44px;margin-bottom:10px;opacity:0.3;}
+.empty h3{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:5px;}
+.empty p{font-size:13px;color:var(--ink2);line-height:1.5;}
+/* GETAWAY */
+.getaway-card{background:linear-gradient(135deg,var(--y2),var(--g2));border-radius:var(--rl);padding:14px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;}
+.getaway-sub-entry{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+/* MAP */
+.map-wrap{padding:0 14px;}
+#lmap{width:100%;height:280px;border-radius:var(--rl);border:1px solid var(--border);z-index:1;}
+.top-places{padding:6px 14px;}
+.tp-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+.tp-row:last-child{border-bottom:none;}
+.tp-rank{font-size:12px;font-weight:700;color:var(--ink3);width:18px;}
+.tp-name{flex:1;font-size:13px;color:var(--ink);}
+.tp-cnt{font-size:11px;color:var(--g);background:var(--g2);padding:2px 7px;border-radius:999px;}
+/* WHEEL */
+.leaflet-popup-content-wrapper{border-radius:10px!important;font-family:-apple-system,sans-serif!important;}
+.leaflet-popup-content{margin:9px 13px!important;font-size:13px!important;}
+/* TODO */
+.list-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:13px;margin-bottom:7px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;box-shadow:var(--shadow);}
+.list-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;margin-top:1px;}
+.list-check.chk{background:var(--g);border-color:var(--g);color:#fff;}
+.list-text{font-size:14px;color:var(--ink);}
+.list-del{background:transparent;border:none;color:var(--ink3);font-size:17px;cursor:pointer;padding:0 2px;flex-shrink:0;}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="screen" id="screen"></div>
+  <div class="navbar" id="navbar" style="display:none">
+    <div class="ni active" id="ni-home" onclick="go('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </div>
+    <div class="ni" id="ni-cal" onclick="go('cal')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Calendar</span>
+    </div>
+    <div class="fab-wrap">
+      <div class="fab" onclick="showAddMenu()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </div>
+    <div class="ni" id="ni-notes" onclick="go('notes')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Notes</span>
+    </div>
+    <div class="ni" id="ni-stats" onclick="go('stats')">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Stats</span>
+    </div>
+  </div>
+</div>
+<div id="add-menu-root"></div>
+<div id="lightbox-root"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc}from"https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import{getAuth,signInAnonymously}from"https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+import{getStorage,ref,uploadString,getDownloadURL}from"https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
+const cfg={apiKey:"AIzaSyCT-AEqhz4Uzb6OHOJ6uJc2yXsrhSkiAsk",authDomain:"pootatoes-90fd5.firebaseapp.com",projectId:"pootatoes-90fd5",storageBucket:"pootatoes-90fd5.firebasestorage.app",messagingSenderId:"392605410976",appId:"1:392605410976:web:babc7ce7439ffb4832cbc5"};
+const fa=initializeApp(cfg);
+window._db=getFirestore(fa);
+window._fs={collection,doc,onSnapshot,setDoc,deleteDoc};
+window._storage={ref,uploadString,getDownloadURL,fst:getStorage(fa)};
+signInAnonymously(getAuth(fa)).then(()=>{window._authed=true;window.dispatchEvent(new Event('db-ready'));}).catch(()=>{window.dispatchEvent(new Event('db-ready'));});
+</script>
+<script>
+// ── CONFIG ──
+const PINS={lemon:'0325',avocado:'0426'};
+const USERS={lemon:{emoji:'🍋',name:'Lemon'},avocado:{emoji:'🥑',name:'Avocado'}};
+const COLORS=['#6B9E6B','#8BC34A','#4CAF50','#2E7D32','#558B2F','#33691E','#9CCC65','#AED581','#DCEDC8','#F9A825'];
+
+// Entry types config
+const ETYPES={
+  eatout:{ico:'🍽️',label:'Eat out',bg:'#FFF0E0',color:'#A85C00',noteLabel:'What did you order?'},
+  grocery:{ico:'🛒',label:'Grocery',bg:'#E8F5FF',color:'#0C4A8A',noteLabel:'What did you buy?'},
+  outing:{ico:'🎯',label:'Outing',bg:'#F3E8FF',color:'#5B21B6',noteLabel:'What did you do?',subcats:['Shopping','Concert','Exercise','Activity','Others']},
+  getaway:{ico:'🏕️',label:'Getaway',bg:'#E8F5E8',color:'#14532D',noteLabel:'What are your plans?'},
+  home:{ico:'🏠',label:'Home',bg:'#FFF8D6',color:'#713F12',noteLabel:'What did you do?'},
+};
+
+// ── STATE ──
+let currentUser=localStorage.getItem('pt_user')||null;
+let entries=[],mems=[];  // entries=new typed, mems=old memories
+let wheel=['Dinner date','Movie night','Hiking','Road trip','Cook at home','Picnic'];
+let listData={todo:[]};
+let countdowns=[],calendarEvents=[],jarNotes=[],checkins=[],ourSong={title:'',artist:'',url:''},couplePhoto='';
+let page='home',selected=null,form={},formPhotos=[null,null,null];
+let mapInst=null,dMapInst=null,srchDeb=null,openStat=null;
+let wheelSpin=false,wheelAngle=0,motdIdx=null,jarShown=null;
+let calView='month',calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+let selectedCalDate=null,editingCd=null;
+let dailyQuote=null,quoteLoading=false;
+let statPeriod='month';
+let _todoFilter='all',_selectedTodoTag='',_todoPlace='';
+
+// ── HELPERS ──
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function fmt(d){if(!d)return'';const[y,m,dd]=d.split('-');const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${parseInt(dd)} ${mo[m-1]} ${y}`;}
+function fmtM(ym){if(!ym)return'';const[y,m]=ym.split('-');const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${mo[m-1]} ${y}`;}
+function nowYM(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+function daysUntil(ds){const d=new Date(ds),n=new Date();n.setHours(0,0,0,0);d.setHours(0,0,0,0);return Math.ceil((d-n)/86400000);}
+function daysLeftInYear(){const n=new Date(),e=new Date(2026,11,31);return Math.ceil((e-n)/86400000);}
+function daysLeftInMonth(){const n=new Date(),e=new Date(n.getFullYear(),n.getMonth()+1,0);return e.getDate()-n.getDate()+1;}
+function pctYearDone(){const n=new Date();return((n-new Date(2026,0,1))/(new Date(2026,11,31)-new Date(2026,0,1))*100).toFixed(1);}
+function pctMonthDone(){const n=new Date(),days=new Date(n.getFullYear(),n.getMonth()+1,0).getDate();return((n.getDate()-1)/days*100).toFixed(1);}
+function sd(c){const e=document.getElementById('sync-dot');if(e)e.style.background=c;}
+function getWeekRange(d=new Date()){const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);const mon=new Date(new Date(d).setDate(diff));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return{mon,sun};}
+function fmtShort(d){const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${mo[d.getMonth()]} ${d.getDate()}`;}
+function allEntries(){return[...entries,...mems.map(m=>({...m,etype:'memory'}))].sort((a,b)=>b.id-a.id);}
+function totalBudget(arr){return arr.reduce((s,e)=>s+(+e.budget||0),0);}
+function periodEntries(period){
+  const now=new Date(),todayStr=now.toISOString().slice(0,10);
+  const ym=nowYM();
+  const all=allEntries();
+  if(period==='today')return all.filter(e=>e.date===todayStr);
+  if(period==='week'){const{mon,sun}=getWeekRange();return all.filter(e=>e.date>=mon.toISOString().slice(0,10)&&e.date<=sun.toISOString().slice(0,10));}
+  if(period==='month')return all.filter(e=>e.date?.startsWith(ym));
+  return all;
+}
+
+// ── FIREBASE ──
+const db=()=>window._db,fs=()=>window._fs;
+async function fsSet(col,id,data){try{sd('#f59e0b');await fs().setDoc(fs().doc(db(),col,String(id)),data);sd('#22c55e');}catch(e){console.error('fsSet:',e.code);sd('#ef4444');if(e.code==='permission-denied')alert('Permission denied — please refresh.');}}
+async function fsDel(col,id){try{await fs().deleteDoc(fs().doc(db(),col,String(id)));sd('#22c55e');}catch(e){sd('#ef4444');}}
+async function fsShared(id,data){await fsSet('shared',id,data);}
+
+function startSync(){
+  const{collection,onSnapshot}=fs();
+  // New typed entries
+  onSnapshot(collection(db(),'entries'),snap=>{entries=snap.docs.map(d=>d.data()).sort((a,b)=>b.id-a.id);if(['home','stats'].includes(page))render();sd('#22c55e');},e=>{console.error('entries:',e.code);sd('#ef4444');});
+  // Old memories (kept for backward compat)
+  onSnapshot(collection(db(),'memories'),snap=>{mems=snap.docs.map(d=>d.data()).sort((a,b)=>b.id-a.id);if(['home','stats'].includes(page))render();},()=>{});
+  const keys=['wheel','listData','countdowns','calendarEvents','jarNotes','ourSong','couplePhoto','checkins'];
+  keys.forEach(k=>onSnapshot(fs().doc(db(),'shared',k),snap=>{
+    if(!snap.exists())return;const d=snap.data();
+    if(k==='wheel')wheel=d.items||wheel;
+    else if(k==='listData')listData=d.data||listData;
+    else if(k==='countdowns')countdowns=d.items||countdowns;
+    else if(k==='calendarEvents')calendarEvents=d.items||calendarEvents;
+    else if(k==='jarNotes')jarNotes=d.notes||jarNotes;
+    else if(k==='ourSong')ourSong=d;
+    else if(k==='couplePhoto')couplePhoto=d.url||'';
+    else if(k==='checkins')checkins=d.items||checkins;
+    const rp={wheel:'wheel',listData:['todo'],countdowns:'countdown',calendarEvents:'cal',jarNotes:'jar',ourSong:'song',couplePhoto:'home',checkins:'checkin'};
+    const r=rp[k];if((Array.isArray(r)&&r.includes(page))||page===r)render();
+  }));
+}
+if(window._db)startSync();else window.addEventListener('db-ready',startSync);
+
+// ── PHOTO UPLOAD ──
+async function uploadPhotos(entryId,photos){
+  if(!window._storage||!photos.length)return photos;
+  const{ref,uploadString,getDownloadURL,fst}=window._storage;
+  const urls=[];
+  for(let i=0;i<photos.length;i++){
+    try{const r=ref(fst,`photos/${entryId}_${i}.jpg`);await uploadString(r,photos[i],'data_url');urls.push(await getDownloadURL(r));}
+    catch(e){console.error('photo upload:',e);urls.push(photos[i]);}
+  }
+  return urls;
+}
+function compressPhoto(file){
+  return new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=600;let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        let q=0.6,out=c.toDataURL('image/jpeg',q);
+        while(out.length>180000&&q>0.1){q-=0.1;out=c.toDataURL('image/jpeg',q);}
+        res(out);
+      };img.src=e.target.result;
+    };reader.readAsDataURL(file);
+  });
+}
+
+// ── PIN LOGIN ──
+let pinEntry='',pinTarget=null;
+function renderLogin(){
+  const s=document.getElementById('screen');
+  document.getElementById('navbar').style.display='none';
+  s.innerHTML=`<div class="login-screen">
+    <div class="login-logo">🥔</div>
+    <div class="login-title">Pootatoes</div>
+    <div class="login-sub">Who's logging in?</div>
+    <div class="login-options">
+      <div class="login-opt${pinTarget==='lemon'?' selected':''}" onclick="selectUser('lemon')"><div class="login-opt-emoji">🍋</div><div class="login-opt-name">Lemon</div></div>
+      <div class="login-opt${pinTarget==='avocado'?' selected':''}" onclick="selectUser('avocado')"><div class="login-opt-emoji">🥑</div><div class="login-opt-name">Avocado</div></div>
+    </div>
+    <div class="pin-section${pinTarget?' show':''}" id="pin-section">
+      <div class="pin-title">Enter your PIN</div>
+      <div class="pin-dots">${[0,1,2,3].map(i=>`<div class="pin-dot${i<pinEntry.length?' filled':''}" id="pd-${i}"></div>`).join('')}</div>
+      <div class="pin-keypad">${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>`<div class="pin-key${k==='⌫'?' del':''}" onclick="pinKey('${k}')">${k}</div>`).join('')}</div>
+      <div class="pin-error" id="pin-error"></div>
+    </div>
+  </div>`;}
+function selectUser(u){pinTarget=u;pinEntry='';renderLogin();}
+function pinKey(k){
+  if(k==='')return;
+  if(k==='⌫'){pinEntry=pinEntry.slice(0,-1);updatePinDots();return;}
+  if(pinEntry.length>=4)return;
+  pinEntry+=k;updatePinDots();
+  if(pinEntry.length===4){setTimeout(()=>{
+    if(pinEntry===PINS[pinTarget]){currentUser=pinTarget;localStorage.setItem('pt_user',pinTarget);document.getElementById('navbar').style.display='flex';go('home');}
+    else{pinEntry='';updatePinDots();const e=document.getElementById('pin-error');if(e)e.textContent='Wrong PIN, try again';setTimeout(()=>{const e=document.getElementById('pin-error');if(e)e.textContent='';},1500);}
+  },200);}
+}
+function updatePinDots(){[0,1,2,3].forEach(i=>{const d=document.getElementById(`pd-${i}`);if(d)d.className='pin-dot'+(i<pinEntry.length?' filled':'');});}
+function logout(){currentUser=null;localStorage.removeItem('pt_user');renderLogin();}
+
+// ── NAV ──
+function go(p){
+  page=p;form={};formPhotos=[null,null,null];openStat=null;selectedCalDate=null;editingCd=null;
+  if(mapInst){mapInst.remove();mapInst=null;}if(dMapInst){dMapInst.remove();dMapInst=null;}
+  render();
+}
+function setNav(p){['home','cal','notes','stats'].forEach(n=>{const e=document.getElementById('ni-'+n);if(e)e.className='ni'+(n===p?' active':'');});}
+function render(){
+  if(!currentUser){renderLogin();return;}
+  const s=document.getElementById('screen');
+  document.getElementById('navbar').style.display='flex';
+  setNav(page);
+  const routes={
+    home:rHome,cal:rCal,notes:rNotes,stats:rStats,
+    add:()=>rForm('eatout'),eatout:()=>rForm('eatout'),grocery:()=>rForm('grocery'),
+    outing:()=>rForm('outing'),getaway:()=>rForm('getaway'),home_entry:()=>rForm('home'),
+    detail:rDetail,memdetail:rMemDetail,
+    wheel:rWheel,todo:rTodo,countdown:rCountdown,
+    jar:rJar,song:rSong,checkin:rCheckin,memmonth:rMemMonth,map:rMap,
+  };
+  (routes[page]||rHome)(s);s.scrollTop=0;
+}
+
+// ── ICONS ──
+const ICO={
+  back:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
+  close:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  edit:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  pin:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  ext:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  loc:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`,
+};
+
+function mkMark(col,cnt){
+  const b=cnt>1?`<div style="position:absolute;top:-4px;right:-4px;background:#fff;color:${col};font-size:9px;font-weight:800;border-radius:999px;padding:1px 4px;border:1.5px solid ${col};min-width:16px;text-align:center">${cnt}</div>`:'';
+  return L.divIcon({className:'',html:`<div style="position:relative;width:26px;height:26px"><div style="width:26px;height:26px;border-radius:50% 50% 50% 0;background:${col};border:2.5px solid #fff;transform:rotate(-45deg)"></div>${b}</div>`,iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-28]});
+}
+
+// ── HOME ──
+function rHome(s){
+  const u=USERS[currentUser];
+  const leftYear=daysLeftInYear();const pctYear=pctYearDone();
+  const leftMonth=daysLeftInMonth();const pctMonth=pctMonthDone();
+  const upcoming=countdowns.filter(c=>daysUntil(c.date)>=0).sort((a,b)=>daysUntil(a.date)-daysUntil(b.date)).slice(0,3);
+  const all=allEntries();const recent=all.slice(0,6);
+  s.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0">
+      <div style="font-size:22px;font-weight:700;color:var(--ink)">Pootatoes 🥔</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="font-size:12px;color:var(--ink3)">${u.emoji} ${u.name}</div>
+        <div id="sync-dot" class="sync-dot"></div>
+        <button onclick="logout()" style="background:transparent;border:none;font-size:11px;color:var(--ink3);cursor:pointer">Sign out</button>
+      </div>
+    </div>
+    <div class="home-hero" style="margin-top:10px">
+      ${couplePhoto?`<img src="${couplePhoto}" class="home-hero-img" alt=""/>`:`<div class="home-hero-placeholder"><div class="home-hero-emojis">🍋 & 🥑</div><div class="home-hero-label">Tap 📷 to add your photo</div></div>`}
+      <button class="hero-edit-btn" onclick="document.getElementById('hero-file').click()">📷</button>
+      <div class="home-user-badge">${u.emoji} ${u.name}</div>
+    </div>
+    <input type="file" id="hero-file" accept="image/*" style="display:none" onchange="saveHeroPhoto(this)"/>
+    <div class="home-widgets" style="margin-top:10px">
+      <div class="widget">
+        <div class="widget-title">🎊 Days left in 2026</div>
+        <div class="ny-countdown">
+          <div class="ny-days">${leftYear}</div>
+          <div class="ny-label">days until New Year 🎉</div>
+          <div class="ny-bar"><div class="ny-bar-fill" style="width:${pctYear}%"></div></div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:4px">${pctYear}% of 2026 done</div>
+        </div>
+      </div>
+      <div class="widget">
+        <div class="widget-title">📅 Days left in ${new Date().toLocaleString('en',{month:'long'})}</div>
+        <div class="ny-countdown">
+          <div class="ny-days" style="font-size:36px">${leftMonth}</div>
+          <div class="ny-label">days left this month</div>
+          <div class="ny-bar"><div class="ny-bar-fill" style="width:${pctMonth}%"></div></div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:4px">${pctMonth}% of the month done</div>
+        </div>
+      </div>
+      ${upcoming.length?`<div class="widget">
+        <div class="widget-title">⏰ Upcoming</div>
+        ${upcoming.map(c=>{const d=daysUntil(c.date);return`<div class="event-row">
+          <div class="event-days"><div class="event-days-num">${d}</div><div class="event-days-lbl">days</div></div>
+          <div class="event-info"><div class="event-name">${esc(c.name)}</div><div class="event-date">${fmt(c.date)}${c.time?` · ${c.time}`:''}${c.place?` · 📍 ${esc(c.place)}`:''}</div></div>
+        </div>`;}).join('')}
+      </div>`:''}
+      ${recent.length?`<div class="widget">
+        <div class="widget-title">📖 Recent entries</div>
+        ${recent.map(e=>{const et=ETYPES[e.etype];return`<div style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="${e.etype==='memory'?`openMemDet(${e.id})`:`openDet(${e.id})`}">
+          <div style="width:36px;height:36px;border-radius:10px;background:${et?.bg||'var(--y2)'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${et?.ico||'💕'}</div>
+          <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.title)}</div><div style="font-size:11px;color:var(--ink2)">${fmt(e.date)}${e.place?` · ${esc(e.place)}`:''}</div></div>
+          ${e.budget?`<div style="font-size:12px;font-weight:600;color:var(--g)">RM${(+e.budget).toFixed(0)}</div>`:''}
+        </div>`;}).join('')}
+      </div>`:`<div class="empty"><div class="empty-ico">🥔</div><h3>No entries yet</h3><p>Tap + to add your first one!</p></div>`}
+    </div>`;}
+
+function saveHeroPhoto(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{couplePhoto=e.target.result;fsShared('couplePhoto',{url:couplePhoto});rHome(document.getElementById('screen'));};r.readAsDataURL(f);}
+
+
+// ── ADD MENU ──
+function showAddMenu(){
+  const root=document.getElementById('add-menu-root');
+  const items=[
+    {ico:'🍽️',label:'Eat out',action:"hideAddMenu();page='eatout';form={};formPhotos=[null,null,null];render()"},
+    {ico:'🛒',label:'Grocery',action:"hideAddMenu();page='grocery';form={};formPhotos=[null,null,null];render()"},
+    {ico:'🎯',label:'Outing',action:"hideAddMenu();page='outing';form={};formPhotos=[null,null,null];render()"},
+    {ico:'🏕️',label:'Getaway',action:"hideAddMenu();page='getaway';form={};formPhotos=[null,null,null];render()"},
+    {ico:'🏠',label:'Home',action:"hideAddMenu();page='home_entry';form={};formPhotos=[null,null,null];render()"},
+  ];
+  root.innerHTML=`<div class="add-overlay" onclick="hideAddMenu()">
+    <div class="add-sheet" onclick="event.stopPropagation()">
+      <div class="add-sheet-title">What did you do? 💕</div>
+      <div class="add-grid">${items.map(i=>`<div class="add-item" onclick="${i.action}"><div class="add-item-ico">${i.ico}</div><div class="add-item-label">${i.label}</div></div>`).join('')}</div>
+      <button class="add-close" onclick="hideAddMenu()">Cancel</button>
+    </div>
+  </div>`;}
+function hideAddMenu(){document.getElementById('add-menu-root').innerHTML='';}
+
+// ── ENTRY FORM ──
+function rForm(etype){
+  const s=document.getElementById('screen');
+  const et=ETYPES[etype];
+  const isEdit=!!form.id;
+  const isGetaway=etype==='getaway';
+  s.innerHTML=`
+    <div class="form-bar">
+      <button class="ico-btn" onclick="go('home')">${ICO.close}</button>
+      <span class="form-bar-title">${isEdit?'Edit':'Add'} ${et.label}</span>
+    </div>
+    <div class="form-body">
+      ${etype==='outing'?`<div class="fl">Category</div>
+      <div class="subcat-wrap" id="subcat-wrap">
+        ${et.subcats.map(sc=>`<div class="subcat-chip${(form.subcat||'')===sc?' sel':''}" onclick="pickSubcat('${sc}')">${sc}</div>`).join('')}
+      </div>`:''}
+      <div class="fl">Title *</div>
+      <input class="fi" id="f-title" value="${esc(form.title||'')}" placeholder="e.g. ${etype==='eatout'?'Dinner at Nobu':etype==='grocery'?'AEON shopping':etype==='outing'?'Saturday outing':etype==='getaway'?'Penang trip':'Movie night at home'}"/>
+      <div class="fl">${isGetaway?'Date from':'Date'}</div>
+      <input class="fi" type="date" id="f-date" value="${form.date||''}"/>
+      ${isGetaway?`<div class="fl">Date to</div><input class="fi" type="date" id="f-dateto" value="${form.dateto||''}"/>`:''}
+      <div class="fl">Location</div>
+      <input class="fi" id="f-place" value="${esc(form.place||'')}" placeholder="Search location…" autocomplete="off" oninput="onFormPlaceSearch(this.value,'f-pres','f-lat','f-lng','f-place')" style="margin-bottom:4px"/>
+      <div class="place-results" id="f-pres"></div>
+      <button class="loc-btn" onclick="useFormLoc()">${ICO.loc} Use my location</button>
+      <div class="coord-row"><input class="fi" id="f-lat" value="${form.lat||''}" placeholder="Latitude"/><input class="fi" id="f-lng" value="${form.lng||''}" placeholder="Longitude"/></div>
+      <div class="coord-hint">Auto-filled when you pick a place.</div>
+      <div class="fl">Budget (RM)</div>
+      <input class="fi" type="number" id="f-budget" value="${form.budget||''}" placeholder="0.00" step="0.01"/>
+      <div class="fl">Photos (up to 3)</div>
+      <div class="photo-upload-row">${[0,1,2].map(i=>`<div class="photo-slot" id="pslot-${i}">${formPhotos[i]?`<img src="${formPhotos[i]}" alt=""/><button class="photo-slot-rm" onclick="rmPhoto(${i})">×</button>`:`<input type="file" accept="image/*" onchange="addPhoto(${i},this)"/><span class="photo-slot-ico">📷</span>`}</div>`).join('')}</div>
+      <div class="fl">${et.noteLabel}</div>
+      <textarea class="fta" id="f-note" placeholder="Write it down…" style="min-height:80px">${esc(form.note||'')}</textarea>
+      <button class="save-btn" id="save-entry-btn" onclick="saveEntry('${etype}')">Save ${et.label} ${et.ico}</button>
+    </div>`;}
+
+function pickSubcat(sc){
+  form.subcat=sc;
+  document.querySelectorAll('.subcat-chip').forEach(el=>{el.classList.toggle('sel',el.textContent===sc);});
+}
+
+let _formPlaceSrch=null;
+function onFormPlaceSearch(v,resId,latId,lngId,inpId){
+  clearTimeout(_formPlaceSrch);
+  const res=document.getElementById(resId);if(!res)return;
+  if(v.trim().length<3){res.style.display='none';return;}
+  _formPlaceSrch=setTimeout(async()=>{
+    try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(v)}&limit=5`,{headers:{'Accept-Language':'en'}});
+    const data=await r.json();if(!data.length){res.style.display='none';return;}
+    res.innerHTML=data.map(d=>`<div class="place-result-item" onclick="pickFormPlace('${esc(d.display_name)}',${d.lat},${d.lon},'${resId}','${latId}','${lngId}','${inpId}')"><div class="pri-name">${esc(d.display_name.split(',')[0])}</div><div class="pri-addr">${esc(d.display_name.split(',').slice(1,3).join(',').trim())}</div></div>`).join('');
+    res.style.display='block';}catch(e){res.style.display='none';}
+  },400);
+}
+function pickFormPlace(name,lat,lng,resId,latId,lngId,inpId){
+  const sn=name.split(',')[0].trim();
+  form.place=sn;form.lat=parseFloat((+lat).toFixed(6));form.lng=parseFloat((+lng).toFixed(6));
+  const inp=document.getElementById(inpId);if(inp)inp.value=sn;
+  const li=document.getElementById(latId);if(li)li.value=form.lat;
+  const lo=document.getElementById(lngId);if(lo)lo.value=form.lng;
+  const res=document.getElementById(resId);if(res)res.style.display='none';
+}
+async function useFormLoc(){
+  if(!navigator.geolocation){alert('Geolocation not supported.');return;}
+  navigator.geolocation.getCurrentPosition(async p=>{
+    form.lat=parseFloat(p.coords.latitude.toFixed(6));form.lng=parseFloat(p.coords.longitude.toFixed(6));
+    const fl=document.getElementById('f-lat'),fn=document.getElementById('f-lng');
+    if(fl)fl.value=form.lat;if(fn)fn.value=form.lng;
+    try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${form.lat}&lon=${form.lng}`,{headers:{'Accept-Language':'en'}});
+    const d=await r.json();if(d?.address){const a=d.address;form.place=a.amenity||a.tourism||a.road||a.suburb||a.city||d.display_name.split(',')[0];const fp=document.getElementById('f-place');if(fp)fp.value=form.place;}}catch(e){}
+  },()=>alert('Could not get location.'));
+}
+function addPhoto(i,inp){
+  const f=inp.files[0];if(!f)return;
+  compressPhoto(f).then(compressed=>{
+    formPhotos[i]=compressed;
+    const sl=document.getElementById(`pslot-${i}`);
+    if(sl)sl.innerHTML=`<img src="${compressed}" alt=""/><button class="photo-slot-rm" onclick="rmPhoto(${i})">×</button>`;
+  });
+}
+function rmPhoto(i){formPhotos[i]=null;const sl=document.getElementById(`pslot-${i}`);if(sl)sl.innerHTML=`<input type="file" accept="image/*" onchange="addPhoto(${i},this)"/><span class="photo-slot-ico">📷</span>`;}
+
+async function saveEntry(etype){
+  const title=document.getElementById('f-title')?.value.trim();if(!title){alert('Please add a title.');return;}
+  const lat=parseFloat(document.getElementById('f-lat')?.value);
+  const lng=parseFloat(document.getElementById('f-lng')?.value);
+  const rawPhotos=formPhotos.filter(Boolean);
+  const entryId=form.id||(Date.now()+Math.floor(Math.random()*9999));
+  const btn=document.getElementById('save-entry-btn');
+  if(btn){btn.textContent='Saving…';btn.disabled=true;}
+  const photos=rawPhotos.length?await uploadPhotos(entryId,rawPhotos):[];
+  const entry={
+    id:entryId,etype,title,
+    date:document.getElementById('f-date')?.value||'',
+    dateto:document.getElementById('f-dateto')?.value||'',
+    place:document.getElementById('f-place')?.value.trim()||form.place||'',
+    lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng,
+    budget:parseFloat(document.getElementById('f-budget')?.value)||0,
+    photos,note:document.getElementById('f-note')?.value||'',
+    subcat:form.subcat||'',addedBy:currentUser,
+  };
+  await fsSet('entries',String(entryId),entry);
+  form={};go('home');
+}
+
+// ── ENTRY DETAIL ──
+function openDet(id){selected=entries.find(e=>e.id===id||e.id===Number(id));if(!selected)return;page='detail';if(dMapInst){dMapInst.remove();dMapInst=null;}render();}
+function openMemDet(id){selected=mems.find(m=>m.id===id||m.id===Number(id));if(!selected)return;page='memdetail';render();}
+
+function rDetail(s){
+  const e=selected;if(!e)return;
+  const et=ETYPES[e.etype]||{ico:'💕',label:'Entry',bg:'var(--y2)'};
+  s.innerHTML=`
+    <div class="back-row" onclick="go('home')">${ICO.back} Back</div>
+    <div class="det-hero">
+      <div class="det-ebox" style="background:${et.bg}">${et.ico}</div>
+      <div>
+        <div class="det-name">${esc(e.title)}</div>
+        <div class="det-date">${fmt(e.date)}${e.dateto?` → ${fmt(e.dateto)}`:''}${e.subcat?` · ${esc(e.subcat)}`:''}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+          <span class="tag tag-type">${et.label}</span>
+          ${e.place?`<span class="tag tag-place">${ICO.pin} ${esc(e.place)}</span>`:''}
+          ${e.budget?`<span class="tag tag-budget">RM ${(+e.budget).toFixed(2)}</span>`:''}
+        </div>
+      </div>
+    </div>
+    ${e.photos&&e.photos.filter(Boolean).length?`<div class="det-photos">${e.photos.filter(Boolean).map(p=>`<img src="${p}" onclick="showLB('${p}')" alt=""/>`).join('')}</div>`:''}
+    ${e.lat?`<div class="dlmap-wrap"><div id="dlmap"></div></div>`:''}
+    ${e.note?`<div class="det-note">"${esc(e.note)}"</div>`:''}
+    <div style="padding:8px 16px;font-size:12px;color:var(--ink3)">Added by ${USERS[e.addedBy]?.emoji||''} ${USERS[e.addedBy]?.name||e.addedBy||'unknown'}</div>
+    <div class="det-actions">
+      <button class="btn btn-dan" onclick="delEntry(${e.id})">Delete</button>
+      <button class="btn btn-sec" onclick="editEntry(${e.id})">${ICO.edit} Edit</button>
+    </div>`;
+  if(e.lat){setTimeout(()=>{const el=document.getElementById('dlmap');if(!el||!window.L)return;dMapInst=L.map(el,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false}).setView([+e.lat,+e.lng],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(dMapInst);L.marker([+e.lat,+e.lng],{icon:mkMark('#6B9E6B',1)}).addTo(dMapInst);},60);}
+}
+
+function rMemDetail(s){
+  const m=selected;if(!m)return;
+  const osmUrl=m.lat?`https://www.openstreetmap.org/?mlat=${m.lat}&mlon=${m.lng}&zoom=15`:'';
+  s.innerHTML=`
+    <div class="back-row" onclick="go('home')">${ICO.back} Back</div>
+    <div class="det-hero"><div class="det-ebox" style="background:var(--y2)">${m.emoji||'💕'}</div><div><div class="det-name">${esc(m.title)}</div><div class="det-date">${fmt(m.date)}${m.place?` · ${esc(m.place)}`:''}</div></div></div>
+    ${m.photos&&m.photos.filter(Boolean).length?`<div class="det-photos">${m.photos.filter(Boolean).map(p=>`<img src="${p}" onclick="showLB('${p}')" alt=""/>`).join('')}</div>`:''}
+    ${m.lat?`<div class="dlmap-wrap"><div id="dlmap"></div></div>`:''}
+    ${m.tags&&m.tags.length?`<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap">${m.tags.map(t=>`<span class="tag tag-budget">${esc(t)}</span>`).join('')}</div>`:''}
+    ${m.note?`<div class="det-note">"${esc(m.note)}"</div>`:''}
+    <div class="det-actions">
+      <button class="btn btn-dan" onclick="delMem(${m.id})">Delete</button>
+      ${osmUrl?`<button class="btn btn-sec" onclick="window.open('${osmUrl}','_blank')">Maps</button>`:''}
+    </div>`;
+  if(m.lat){setTimeout(()=>{const el=document.getElementById('dlmap');if(!el||!window.L)return;dMapInst=L.map(el,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false}).setView([+m.lat,+m.lng],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(dMapInst);L.marker([+m.lat,+m.lng],{icon:mkMark('#6B9E6B',1)}).addTo(dMapInst);},60);}
+}
+
+function editEntry(id){const e=entries.find(x=>x.id===id||x.id===Number(id));if(!e)return;form={...e};formPhotos=[...(e.photos||[])];while(formPhotos.length<3)formPhotos.push(null);page=e.etype;render();}
+function delEntry(id){if(!confirm('Delete this entry?'))return;fsDel('entries',String(id));go('home');}
+function delMem(id){if(!confirm('Delete this memory?'))return;fsDel('memories',String(id));go('home');}
+
+// ── CALENDAR ──
+function rCal(s){
+  const all=allEntries();
+  const allEvents=[
+    ...countdowns.map(c=>({name:c.name,date:c.date,type:'countdown',id:c.id})),
+    ...calendarEvents.map(e=>({name:e.name,date:e.date,type:'event',id:e.id})),
+    ...all.filter(e=>e.date).map(e=>({name:`${ETYPES[e.etype]?.ico||'💕'} ${e.title}`,date:e.date,type:'entry',id:e.id,etype:e.etype})),
+  ];
+  const evByDate={};allEvents.forEach(e=>{if(e.date)(evByDate[e.date]=evByDate[e.date]||[]).push(e);});
+  const today=new Date().toISOString().slice(0,10);
+  const mo=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let content='';
+  if(calView==='month'){
+    const firstDay=new Date(calYear,calMonth,1).getDay();
+    const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+    let cells='';
+    for(let i=0;i<(firstDay===0?6:firstDay-1);i++)cells+=`<div class="cal-day other-month"></div>`;
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      cells+=`<div class="cal-day${ds===today?' today':''}${!!evByDate[ds]?' has-event':''}${ds===selectedCalDate?' selected-day':''}" onclick="selectDay('${ds}')">${d}</div>`;
+    }
+    content=`
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calMonth--;if(calMonth<0){calMonth=11;calYear--;}selectedCalDate=null;render()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <div class="cal-month">${mo[calMonth]} ${calYear}</div>
+        <button class="cal-nav" onclick="calMonth++;if(calMonth>11){calMonth=0;calYear++;}selectedCalDate=null;render()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+      <div class="cal-grid">
+        ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-day-name">${d}</div>`).join('')}
+        ${cells}
+      </div>
+      ${selectedCalDate?renderDaySheet(selectedCalDate,evByDate[selectedCalDate]||[],all):renderMonthSummary(all,evByDate)}`;
+  }else{
+    const todayD=new Date();const{mon}=getWeekRange(todayD);
+    content=`
+      <div class="cal-header"><div style="font-size:14px;color:var(--ink2);font-weight:500">${fmtShort(mon)} – ${fmtShort(new Date(mon.getTime()+6*86400000))}</div></div>
+      <div class="week-grid">
+        ${[0,1,2,3,4,5,6].map(i=>{const d=new Date(mon.getTime()+i*86400000);const ds=d.toISOString().slice(0,10);const evs=evByDate[ds]||[];
+          return`<div class="week-row"><div class="week-day-label"><div class="week-day-name">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div><div class="week-day-num${ds===today?' today':''}">${d.getDate()}</div></div><div class="week-events">${evs.length?evs.map(e=>`<div class="week-event">${esc(e.name)}</div>`).join(''):`<div class="week-empty">—</div>`}</div></div>`;
+        }).join('')}
+      </div>`;
+  }
+  s.innerHTML=`
+    <div class="ph"><div class="ph-title">Calendar</div></div>
+    <div class="cal-wrap">
+      <div class="cal-view-toggle">
+        <button class="cal-view-btn${calView==='month'?' active':''}" onclick="calView='month';selectedCalDate=null;render()">Monthly</button>
+        <button class="cal-view-btn${calView==='week'?' active':''}" onclick="calView='week';selectedCalDate=null;render()">Weekly</button>
+      </div>
+      ${content}
+      <a class="cal-gcal-btn" href="https://calendar.google.com" target="_blank">📅 Open Google Calendar</a>
+    </div>`;}
+
+function renderMonthSummary(all,evByDate){
+  const monthStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const monthEntries=all.filter(e=>e.date?.startsWith(monthStr));
+  const monthSpend=totalBudget(monthEntries);
+  if(!monthEntries.length)return`<div style="padding:12px 0;font-size:13px;color:var(--ink3);text-align:center">Tap a date to add an event, or start adding entries!</div>`;
+  return`<div style="background:var(--g2);border-radius:var(--rl);padding:12px;margin-bottom:10px">
+    <div style="font-size:12px;color:var(--g);font-weight:600;margin-bottom:4px">${fmtM(monthStr)}</div>
+    <div style="font-size:20px;font-weight:700;color:var(--ink)">${monthEntries.length} entries · RM ${monthSpend.toFixed(2)}</div>
+  </div>
+  <div>${monthEntries.slice(0,8).map(e=>{const et=ETYPES[e.etype]||{ico:'💕'};return`<div class="cal-event-item" onclick="${e.etype==='memory'?`openMemDet(${e.id})`:`openDet(${e.id})`}" style="cursor:pointer">
+    <div class="cal-event-dot" style="background:${et.bg||'var(--y2)'}"></div>
+    <div class="cal-event-info"><div class="cal-event-name">${et.ico} ${esc(e.title)}</div><div class="cal-event-date">${fmt(e.date)}${e.budget?` · RM${(+e.budget).toFixed(0)}`:''}</div></div>
+  </div>`;}).join('')}</div>`;
+}
+
+function renderDaySheet(ds,evs,all){
+  const dayEntries=all.filter(e=>e.date===ds);
+  const dayBudget=totalBudget(dayEntries);
+  const dayCalEvs=calendarEvents.filter(e=>e.date===ds);
+  return`<div style="background:var(--bg2);border-radius:var(--rl);padding:14px;margin-top:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:15px;font-weight:600;color:var(--ink)">${fmt(ds)}${dayBudget?` · RM ${dayBudget.toFixed(2)}`:''}</div>
+      <button onclick="selectedCalDate=null;render()" style="background:transparent;border:none;color:var(--ink3);font-size:18px;cursor:pointer">×</button>
+    </div>
+    ${dayEntries.length?`<div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Entries</div>
+    ${dayEntries.map(e=>{const et=ETYPES[e.etype]||{ico:'💕',label:'Memory'};return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDet(${e.id})">
+      <span style="font-size:16px">${et.ico}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--ink)">${esc(e.title)}</div>${e.place?`<div style="font-size:11px;color:var(--ink3)">${esc(e.place)}</div>`:''}</div>
+      ${e.budget?`<span style="font-size:12px;font-weight:600;color:var(--g)">RM ${(+e.budget).toFixed(0)}</span>`:''}
+    </div>`;}).join('')}<div style="margin-bottom:10px"></div>`:''}
+    ${dayCalEvs.length?`<div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Events</div>
+    ${dayCalEvs.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--g);flex-shrink:0"></div>
+      <div style="flex:1;font-size:13px;color:var(--ink)">${esc(e.name)}</div>
+      ${daysUntil(ds)<0?`<button onclick="convertCalEventToMemory('${esc(e.name)}','${ds}')" style="font-size:10px;background:var(--y2);border:none;border-radius:6px;padding:2px 6px;cursor:pointer">💕 Memory</button>`:''}
+      <button onclick="delCalEvent(${e.id})" style="background:transparent;border:none;color:var(--ink3);font-size:15px;cursor:pointer">×</button>
+    </div>`).join('')}<div style="margin-bottom:10px"></div>`:''}
+    <div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">+ Add event</div>
+    <input class="fi" id="ev-name" placeholder="Event name…" style="margin-bottom:8px"/>
+    <button class="save-btn" onclick="addCalEvent('${ds}')">Add to ${fmt(ds)}</button>
+  </div>`;}
+
+function selectDay(ds){selectedCalDate=selectedCalDate===ds?null:ds;rCal(document.getElementById('screen'));}
+function addCalEvent(ds){const name=document.getElementById('ev-name')?.value.trim();if(!name)return;calendarEvents.push({id:Date.now(),name,date:ds});fsShared('calendarEvents',{items:calendarEvents});selectedCalDate=ds;rCal(document.getElementById('screen'));}
+function delCalEvent(id){calendarEvents=calendarEvents.filter(e=>e.id!==id);fsShared('calendarEvents',{items:calendarEvents});rCal(document.getElementById('screen'));}
+function convertCalEventToMemory(name,date){if(!confirm(`Convert "${name}" into an entry?`))return;form={title:name,date};formPhotos=[null,null,null];page='eatout';render();}
+
+// ── STATS ──
+function rStats(s){
+  const all=allEntries();
+  const pData=periodEntries(statPeriod);
+  const spend=totalBudget(pData);
+  const ym=nowYM();
+  const months=[...new Set(all.map(e=>e.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+
+  // Type breakdown
+  const typeBreakdown={};
+  pData.forEach(e=>{const k=e.etype||'memory';typeBreakdown[k]=(typeBreakdown[k]||{count:0,spend:0});typeBreakdown[k].count++;typeBreakdown[k].spend+=(+e.budget||0);});
+
+  // Place breakdown
+  const placeCounts={};all.filter(e=>e.place).forEach(e=>{placeCounts[e.place]=(placeCounts[e.place]||0)+1;});
+  const topPlaces=Object.entries(placeCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  s.innerHTML=`
+    <div class="ph"><div class="ph-title">Stats</div><div class="ph-sub">Your journey together 💕</div></div>
+    <div class="stat-spend-card">
+      <div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total spent</div>
+      <div class="stat-spend-total">RM ${spend.toFixed(2)}</div>
+      <div class="stat-period-tabs">
+        ${['today','week','month','all'].map(p=>`<button class="stat-period-tab${statPeriod===p?' active':''}" onclick="statPeriod='${p}';rStats(document.getElementById('screen'))">${p==='all'?'All time':p.charAt(0).toUpperCase()+p.slice(1)}</button>`).join('')}
+      </div>
+    </div>
+    ${Object.keys(typeBreakdown).length?`
+    <div class="sec-block">
+      <div class="sec-title">By type — ${statPeriod==='all'?'all time':statPeriod}</div>
+      ${Object.entries(typeBreakdown).sort((a,b)=>b[1].count-a[1].count).map(([k,v])=>{const et=ETYPES[k]||{ico:'💕',label:'Memory'};return`<div class="stat-type-row">
+        <div class="stat-type-ico">${et.ico}</div>
+        <div class="stat-type-info"><div class="stat-type-name">${et.label}</div><div class="stat-type-count">${v.count} entr${v.count===1?'y':'ies'}</div></div>
+        <div class="stat-type-amt">${v.spend?`RM ${v.spend.toFixed(2)}`:'-'}</div>
+      </div>`;}).join('')}
+    </div>`:''}
+    <div class="sec-block" style="margin-top:4px">
+      <div class="sec-title">Monthly spending</div>
+      ${months.slice(0,8).map(m=>{
+        const mEntries=all.filter(e=>e.date?.startsWith(m));
+        const mSpend=totalBudget(mEntries);
+        const maxSpend=Math.max(...months.slice(0,8).map(mm=>totalBudget(all.filter(e=>e.date?.startsWith(mm)))),1);
+        return`<div class="bar-row"><span class="bar-lbl">${fmtM(m)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(mSpend/maxSpend*100)}%"></div></div><span class="bar-cnt">RM${Math.round(mSpend)}</span></div>`;
+      }).join('')}
+    </div>
+    <div class="sec-block">
+      <div class="sec-title">Monthly activity</div>
+      ${months.slice(0,8).map(m=>{
+        const c=all.filter(e=>e.date?.startsWith(m)).length;
+        const max=Math.max(...months.slice(0,8).map(mm=>all.filter(e=>e.date?.startsWith(mm)).length),1);
+        return`<div class="bar-row"><span class="bar-lbl">${fmtM(m)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/max*100)}%"></div></div><span class="bar-cnt">${c}</span></div>`;
+      }).join('')}
+    </div>
+    ${topPlaces.length?`<div class="sec-block"><div class="sec-title">Top places</div>
+    ${topPlaces.map(([p,c])=>`<div class="tp-row"><span class="tp-name">${esc(p)}</span><span class="tp-cnt">${c}×</span></div>`).join('')}
+    </div>`:''}
+    <div class="sec-block">
+      <button onclick="go('map')" style="width:100%;background:var(--g2);border:1.5px solid var(--border2);border-radius:var(--r);padding:11px;font-size:13px;font-weight:500;color:var(--g);cursor:pointer;font-family:inherit">🗺️ View memory map</button>
+    </div>`;}
+
+// ── NOTES ──
+function rNotes(s){
+  const all=[
+    {id:'checkin',ico:'✅',bg:'#E8F5E8',title:'Weekly Check-In',sub:`${checkins.length} check-in${checkins.length!==1?'s':''} done`},
+    {id:'memmonth',ico:'📸',bg:'#FFF8D6',title:'Memory by month',sub:'Browse old memories'},
+    {id:'jar',ico:'💌',bg:'#FFE8EE',title:'Love Jar',sub:`${jarNotes.length} sweet note${jarNotes.length!==1?'s':''}`},
+    {id:'wheel',ico:'🎡',bg:'#E8F5E8',title:'Spin the Wheel',sub:"Can't decide? Let fate choose!"},
+    {id:'countdown',ico:'📅',bg:'#F3E5F5',title:'Countdowns',sub:`${countdowns.length} event${countdowns.length!==1?'s':''}`},
+    {id:'todo',ico:'📋',bg:'#F0FFF0',title:'To Do',sub:`${(listData.todo||[]).filter(i=>!i.done).length} left`},
+    {id:'map',ico:'🗺️',bg:'#E3F2FD',title:'Memory map',sub:'Places you\'ve been'},
+  ];
+  s.innerHTML=`
+    <div class="ph"><div class="ph-title">Notes & More</div></div>
+    <div class="notes-tab-wrap">
+      ${all.map(f=>`<div class="notes-feature-card" onclick="go('${f.id}')">
+        <div class="nfc-ico" style="background:${f.bg}">${f.ico}</div>
+        <div class="nfc-info"><div class="nfc-title">${f.title}</div><div class="nfc-sub">${esc(f.sub)}</div></div>
+        <div class="nfc-arrow">›</div>
+      </div>`).join('')}
+    </div>`;}
+
+// ── MEMORY BY MONTH (old memories) ──
+function rMemMonth(s){
+  const months=[...new Set(mems.map(m=>m.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+  const now=nowYM();
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">📸 Old memories</div></div>
+    <div class="feat-wrap">
+      ${months.length?months.map(ym=>{
+        const ms=mems.filter(m=>m.date?.startsWith(ym));
+        return`<div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--g);margin-bottom:8px">${fmtM(ym)}${ym===now?' <span style="background:var(--y);color:var(--ink);font-size:10px;padding:2px 7px;border-radius:999px">This month</span>':''}</div>
+          ${ms.map(m=>`<div class="entry-card" onclick="openMemDet(${m.id})">
+            <div class="entry-card-top">
+              <div class="entry-type-badge" style="background:var(--y2)">${m.emoji||'💕'}</div>
+              <div class="entry-info"><div class="entry-title">${esc(m.title)}</div><div class="entry-meta">${fmt(m.date)}${m.place?` · ${esc(m.place)}`:''}</div></div>
+            </div>
+          </div>`).join('')}
+        </div>`;}).join(''):`<div class="empty"><div class="empty-ico">📸</div><h3>No old memories</h3><p>They'll appear here once synced.</p></div>`}
+    </div>`;}
+
+// ── MAP ──
+function rMap(s){
+  const all=allEntries().filter(e=>e.lat&&e.lng);
+  const pcnt={},pname={};all.forEach(e=>{const k=`${(+e.lat).toFixed(2)},${(+e.lng).toFixed(2)}`;pcnt[k]=(pcnt[k]||0)+1;if(!pname[k])pname[k]=e.place||k;});
+  const top=Object.entries(pcnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">🗺️ Memory map</div><div class="ph-sub">${all.length} place${all.length!==1?'s':''} visited</div></div>
+    <div class="map-wrap"><div id="lmap"></div></div>
+    ${top.length?`<div style="padding:6px 14px 2px;font-size:12px;font-weight:600;color:var(--ink2)">Most visited</div><div class="top-places">${top.map(([k,c],i)=>`<div class="tp-row"><span class="tp-rank">${i+1}</span><span class="tp-name">${esc(pname[k])}</span><span class="tp-cnt">${c}×</span></div>`).join('')}</div>`:''}`;
+  if(!all.length)return;
+  setTimeout(()=>{const el=document.getElementById('lmap');if(!el||!window.L)return;const cx=[all.reduce((a,e)=>a+(+e.lat),0)/all.length,all.reduce((a,e)=>a+(+e.lng),0)/all.length];mapInst=L.map(el).setView(cx,6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(mapInst);all.forEach((e,i)=>{const k=`${(+e.lat).toFixed(2)},${(+e.lng).toFixed(2)}`;const mk=L.marker([+e.lat,+e.lng],{icon:mkMark(COLORS[i%COLORS.length],pcnt[k]||1)}).addTo(mapInst);mk.bindPopup(`<b>${ETYPES[e.etype]?.ico||'💕'} ${e.title}</b><br><small>${fmt(e.date)}</small>${e.place?`<br>${e.place}`:''}`);});if(all.length>1)mapInst.fitBounds(L.latLngBounds(all.map(e=>[+e.lat,+e.lng])),{padding:[40,40]});},60);
+}
+
+// ── WHEEL ──
+const GCOLS=['#6B9E6B','#8BC34A','#F5C842','#4CAF50','#9CCC65','#AED581','#C5E1A5','#DCEDC8','#33691E','#558B2F'];
+function rWheel(s){
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">Spin the wheel 🎡</div></div>
+    <div class="feat-wrap">
+      <div style="display:flex;justify-content:center;position:relative;margin-bottom:14px">
+        <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:18px solid var(--g);z-index:10"></div>
+        <canvas id="wc" width="270" height="270" style="border-radius:50%;border:3px solid var(--border2)"></canvas>
+      </div>
+      <div id="wres" style="display:none;text-align:center;padding:12px;background:var(--y2);border-radius:var(--rl);margin-bottom:12px;font-size:17px;font-weight:600;color:var(--ink)"></div>
+      <button id="spin-btn" onclick="doSpin()" style="width:100%;background:linear-gradient(135deg,var(--y),var(--g));border:none;border-radius:var(--rl);padding:13px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;margin-bottom:14px">Spin! 🎡</button>
+      <div id="witems"></div>
+      <button onclick="addWItem()" style="width:100%;background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--r);padding:10px;font-size:13px;color:var(--ink2);cursor:pointer;font-family:inherit">+ Add option</button>
+    </div>`;
+  rWItems();setTimeout(()=>drawWheel(),50);}
+function rWItems(){const el=document.getElementById('witems');if(!el)return;el.innerHTML=wheel.map((it,i)=>`<div style="display:flex;gap:7px;align-items:center;margin-bottom:7px"><input style="flex:1;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:9px 11px;font-size:13px;color:var(--ink);font-family:inherit;outline:none" value="${esc(it)}" oninput="wheel[${i}]=this.value;drawWheel();clearTimeout(window._wt);window._wt=setTimeout(()=>fsShared('wheel',{items:wheel}),800)"/><button onclick="rmWItem(${i})" style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:transparent;color:var(--ink3);cursor:pointer;font-size:16px">×</button></div>`).join('');}
+function addWItem(){wheel.push('');fsShared('wheel',{items:wheel});rWheel(document.getElementById('screen'));setTimeout(()=>{const ins=document.querySelectorAll('#witems input');if(ins.length)ins[ins.length-1].focus();},60);}
+function rmWItem(i){if(wheel.length<=2){alert('Need at least 2!');return;}wheel.splice(i,1);fsShared('wheel',{items:wheel});rWheel(document.getElementById('screen'));}
+function drawWheel(hi=-1){const c=document.getElementById('wc');if(!c)return;const ctx=c.getContext('2d'),cx=135,cy=135,r=128,n=wheel.length,sl=(2*Math.PI)/n;ctx.clearRect(0,0,270,270);wheel.forEach((it,i)=>{const st=wheelAngle+i*sl-Math.PI/2,en=st+sl;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,en);ctx.closePath();ctx.fillStyle=i===hi?'#fff':GCOLS[i%GCOLS.length];ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.save();ctx.translate(cx,cy);ctx.rotate(st+sl/2);ctx.textAlign='right';ctx.fillStyle=i===hi?'#1a1a1a':'#fff';ctx.font=`${Math.min(12,Math.max(8,110/n))}px -apple-system,sans-serif`;ctx.fillText(it.length>13?it.slice(0,12)+'…':it,r-8,4);ctx.restore();});ctx.beginPath();ctx.arc(cx,cy,16,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();}
+function doSpin(){if(wheelSpin||wheel.filter(i=>i.trim()).length<2)return;wheelSpin=true;document.getElementById('spin-btn').disabled=true;const res=document.getElementById('wres');if(res)res.style.display='none';const extra=5+Math.random()*5,target=wheelAngle+extra*2*Math.PI+Math.random()*2*Math.PI,dur=3000+Math.random()*1000,start=performance.now(),sa=wheelAngle;function anim(now){const p=Math.min((now-start)/dur,1),ease=1-Math.pow(1-p,4);wheelAngle=sa+(target-sa)*ease;drawWheel();if(p<1){requestAnimationFrame(anim);}else{wheelAngle=target%(2*Math.PI);const n=wheel.length,sl=2*Math.PI/n,norm=(((-wheelAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI)),idx=Math.floor(norm/sl)%n;drawWheel(idx);wheelSpin=false;document.getElementById('spin-btn').disabled=false;const r=document.getElementById('wres');if(r){r.textContent=`🎉 ${wheel[idx]||wheel[0]}!`;r.style.display='block';}}}requestAnimationFrame(anim);}
+
+// ── TO DO ──
+const TODO_TAGS=['🍜 Food','🏃 Activity','📍 Place'];
+function rTodo(){
+  const s=document.getElementById('screen');
+  const items=listData.todo||[];
+  const todo=items.filter(i=>!i.done);const done=items.filter(i=>i.done);
+  const filtered=_todoFilter==='all'?todo:todo.filter(i=>i.tag===_todoFilter);
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">📋 To Do</div><div class="ph-sub">${todo.length} left · ${done.length} done</div></div>
+    <div class="feat-wrap">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        ${['all',...TODO_TAGS].map(t=>`<div onclick="window._todoFilter='${t}';rTodo()" style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;background:${_todoFilter===t?'var(--g)':'var(--bg2)'};color:${_todoFilter===t?'#fff':'var(--ink2)'};border:1.5px solid ${_todoFilter===t?'var(--g)':'var(--border)'}">${t==='all'?'All':t}</div>`).join('')}
+      </div>
+      <div class="cd-add-form">
+        <div class="fl">Task</div><input class="fi" id="todo-text" placeholder="Add a task…"/>
+        <div class="fl">Tag</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          ${TODO_TAGS.map(t=>`<div onclick="selectTodoTag('${t}')" id="ttag-${t.replace(/\W/g,'_')}" style="padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer;background:${_selectedTodoTag===t?'var(--g)':'var(--bg2)'};color:${_selectedTodoTag===t?'#fff':'var(--ink2)'};border:1.5px solid ${_selectedTodoTag===t?'var(--g)':'var(--border)'}">${t}</div>`).join('')}
+        </div>
+        <div class="fl">Location (optional)</div>
+        <input class="fi" id="todo-place" placeholder="Search location…" autocomplete="off" oninput="onFormPlaceSearch(this.value,'todo-pres','todo-lat','todo-lng','todo-place')" style="margin-bottom:4px"/>
+        <div class="place-results" id="todo-pres"></div>
+        <div class="coord-row">
+          <input class="fi" id="todo-lat" placeholder="Latitude"/>
+          <input class="fi" id="todo-lng" placeholder="Longitude"/>
+        </div>
+        <div class="coord-hint">Auto-filled when you pick a place.</div>
+        <button class="save-btn" onclick="addTodoItem()">Add task</button>
+      </div>
+      ${filtered.map(it=>`<div class="list-item" onclick="toggleTodo(${it.id})">
+        <div class="list-check"></div>
+        <div style="flex:1">
+          <div class="list-text">${esc(it.text)}</div>
+          <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap">
+            ${it.tag?`<span style="font-size:10px;padding:1px 7px;border-radius:999px;background:var(--g2);color:var(--g)">${it.tag}</span>`:''}
+            ${it.place?`<span style="font-size:10px;color:var(--ink3)">📍 ${esc(it.place)}</span>`:''}
+          </div>
+        </div>
+        <button class="list-del" onclick="event.stopPropagation();delTodo(${it.id})">×</button>
+      </div>`).join('')}
+      ${done.length?`<div style="font-size:12px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;padding:8px 0 6px">Done ✓</div>
+      ${done.map(it=>`<div class="list-item" style="opacity:0.5" onclick="toggleTodo(${it.id})">
+        <div class="list-check chk">✓</div><div class="list-text" style="text-decoration:line-through;color:var(--ink3)">${esc(it.text)}</div>
+        <button class="list-del" onclick="event.stopPropagation();delTodo(${it.id})">×</button>
+      </div>`).join('')}`:''}
+    </div>`;}
+function selectTodoTag(t){_selectedTodoTag=_selectedTodoTag===t?'':t;rTodo();}
+function addTodoItem(){
+  const text=document.getElementById('todo-text')?.value.trim();if(!text)return;
+  const place=document.getElementById('todo-place')?.value.trim()||'';
+  const lat=document.getElementById('todo-lat')?.value||null;
+  const lng=document.getElementById('todo-lng')?.value||null;
+  (listData.todo=listData.todo||[]).unshift({id:Date.now(),text,done:false,tag:_selectedTodoTag,place,lat,lng});
+  _selectedTodoTag='';_todoPlace='';
+  fsShared('listData',{data:listData});rTodo();
+}
+function toggleTodo(id){const it=(listData.todo||[]).find(i=>i.id===id);if(it){it.done=!it.done;fsShared('listData',{data:listData});rTodo();}}
+function delTodo(id){listData.todo=(listData.todo||[]).filter(i=>i.id!==id);fsShared('listData',{data:listData});rTodo();}
+
+// ── COUNTDOWN ──
+const CD_CATS=['🎉 Celebration','🎯 Outing','🏕️ Getaway','🏥 Appointment','🎂 Birthday','💍 Anniversary','🎓 Others'];
+function rCountdown(s){
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">📅 Countdowns</div></div>
+    <div class="feat-wrap">
+      <div class="cd-add-form">
+        <div class="cd-add-title">${editingCd?'Edit countdown':'Add a countdown'}</div>
+        <div class="fl">What for?</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          ${CD_CATS.map(cat=>`<div onclick="selectCdCat('${cat}')" class="subcat-chip${(editingCd?.category||window._cdCat||'')===cat?' sel':''}">${cat}</div>`).join('')}
+        </div>
+        <div class="fl">Event name</div>
+        <input class="fi" id="cdn" value="${esc(editingCd?.name||'')}" placeholder="e.g. Bali trip"/>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><div class="fl">Date</div><input class="fi" type="date" id="cdd" value="${editingCd?.date||''}"/></div>
+          <div style="flex:1"><div class="fl">Time (optional)</div><input class="fi" type="time" id="cdt" value="${editingCd?.time||''}"/></div>
+        </div>
+        <div class="fl">Location (optional)</div>
+        <input class="fi" id="cdplace" value="${esc(editingCd?.place||'')}" placeholder="Search location…" oninput="onFormPlaceSearch(this.value,'cd-pres','cd-lat','cd-lng','cdplace')" style="margin-bottom:4px"/>
+        <div class="place-results" id="cd-pres"></div>
+        <div class="coord-row">
+          <input class="fi" id="cd-lat" value="${editingCd?.lat||''}" placeholder="Latitude"/>
+          <input class="fi" id="cd-lng" value="${editingCd?.lng||''}" placeholder="Longitude"/>
+        </div>
+        <div class="coord-hint">Auto-filled when you pick a place.</div>
+        <button class="save-btn" onclick="saveCd()">${editingCd?'Update':'Add'}</button>
+        ${editingCd?`<button onclick="editingCd=null;window._cdCat='';rCountdown(document.getElementById('screen'))" style="width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--rl);padding:12px;font-size:14px;color:var(--ink2);cursor:pointer;font-family:inherit;margin-top:8px">Cancel</button>`:''}
+      </div>
+      ${countdowns.sort((a,b)=>new Date(a.date)-new Date(b.date)).map(c=>{
+        const d=daysUntil(c.date);const isPast=d<0;
+        return`<div class="cd-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              ${c.category?`<div style="font-size:11px;color:var(--g);font-weight:600;margin-bottom:3px">${c.category}</div>`:''}
+              <div style="font-size:15px;font-weight:600;color:var(--ink)">${esc(c.name)}</div>
+              <div style="font-size:12px;color:var(--ink2);margin-top:2px">${fmt(c.date)}${c.time?` · ${c.time}`:''}${c.place?`<br>📍 ${esc(c.place)}`:''}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button onclick="startEditCd(${c.id})" style="background:var(--g2);border:none;border-radius:8px;padding:5px 8px;font-size:12px;color:var(--g);cursor:pointer">✏️</button>
+              <button onclick="delCd(${c.id})" style="background:#FCEBEB;border:none;border-radius:8px;padding:5px 8px;font-size:12px;color:#A32D2D;cursor:pointer">×</button>
+            </div>
+          </div>
+          <div class="cd-days" style="color:${isPast?'var(--ink3)':'var(--g)'}">${Math.abs(d)}</div>
+          <div class="cd-days-lbl">${d<0?'days ago':d===0?'Today! 🎉':'days to go'}</div>
+          ${isPast?`<button onclick="convertCdToEntry(${c.id})" style="width:100%;margin-top:10px;background:linear-gradient(135deg,var(--y),var(--g));border:none;border-radius:var(--r);padding:9px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit">💕 Convert to entry</button>`:''}
+        </div>`;}).join('')}
+    </div>`;}
+
+function selectCdCat(cat){window._cdCat=window._cdCat===cat?'':cat;document.querySelectorAll('#cd-pres').forEach(()=>{});rCountdown(document.getElementById('screen'));}
+
+function startEditCd(id){editingCd=countdowns.find(c=>c.id===id)||null;window._cdCat=editingCd?.category||'';rCountdown(document.getElementById('screen'));}
+
+function saveCd(){
+  const n=document.getElementById('cdn')?.value.trim();
+  const d=document.getElementById('cdd')?.value;
+  const t=document.getElementById('cdt')?.value||'';
+  const place=document.getElementById('cdplace')?.value.trim()||'';
+  const lat=document.getElementById('cd-lat')?.value||null;
+  const lng=document.getElementById('cd-lng')?.value||null;
+  const category=window._cdCat||'';
+  if(!n||!d)return;
+  if(editingCd){
+    const idx=countdowns.findIndex(c=>c.id===editingCd.id);
+    if(idx>=0)countdowns[idx]={...countdowns[idx],name:n,date:d,time:t,place,lat,lng,category};
+    editingCd=null;
+  }else countdowns.push({id:Date.now(),name:n,date:d,time:t,place,lat,lng,category});
+  window._cdCat='';
+  fsShared('countdowns',{items:countdowns});
+  rCountdown(document.getElementById('screen'));
+}
+function delCd(id){if(!confirm('Remove this countdown?'))return;countdowns=countdowns.filter(c=>c.id!==id);fsShared('countdowns',{items:countdowns});rCountdown(document.getElementById('screen'));}
+function convertCdToEntry(id){const c=countdowns.find(x=>x.id===id);if(!c||!confirm(`Convert "${c.name}" into an entry?`))return;form={title:c.name,date:c.date,place:c.place||''};formPhotos=[null,null,null];page='outing';render();}
+
+
+// ── JAR ──
+let jarShown=null;
+function rJar(s){
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">💌 Love jar</div><div class="ph-sub">${jarNotes.length} notes inside</div></div>
+    <div class="feat-wrap">
+      <div class="jar-reveal">${jarShown?`<div class="jar-note-text">"${esc(jarShown.text)}"</div><div class="jar-from">— ${esc(jarShown.from)}</div>`:`<div style="font-size:36px">💌</div><div style="font-size:13px;color:var(--ink2)">Pick a random note</div>`}</div>
+      <button class="shake-btn" onclick="shakeJar()">💌 Pick a random note</button>
+      <div class="cd-add-form">
+        <div class="cd-add-title">Add a note</div>
+        <div class="fl">From</div><input class="fi" id="jfrom" value="${USERS[currentUser]?.emoji||''} ${USERS[currentUser]?.name||''}"/>
+        <div class="fl">Note</div><textarea class="fta" id="jnote" placeholder="Write something sweet…" style="min-height:70px"></textarea>
+        <button class="save-btn" onclick="addJar()">Add to jar 💌</button>
+      </div>
+    </div>`;}
+function shakeJar(){if(!jarNotes.length){alert('Add some notes first!');return;}jarShown=jarNotes[Math.floor(Math.random()*jarNotes.length)];rJar(document.getElementById('screen'));}
+function addJar(){const from=document.getElementById('jfrom')?.value.trim(),text=document.getElementById('jnote')?.value.trim();if(!text)return;jarNotes.push({id:Date.now(),from:from||'Anonymous',text});fsShared('jarNotes',{notes:jarNotes});rJar(document.getElementById('screen'));}
+
+// ── SONG ──
+function rSong(s){
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">🎵 Our song</div></div>
+    <div class="feat-wrap">
+      ${ourSong.title?`<div class="song-card"><div class="song-card-note">🎵</div><div class="song-card-title">${esc(ourSong.title)}</div><div class="song-card-artist">${esc(ourSong.artist)}</div>${ourSong.url?`<a class="song-link" href="${esc(ourSong.url)}" target="_blank">Open link</a>`:''}</div>`:''}
+      <div class="cd-add-form">
+        <div class="cd-add-title">${ourSong.title?'Change song':'Set your song'}</div>
+        <div class="fl">Song title</div><input class="fi" id="stitle" value="${esc(ourSong.title||'')}" placeholder="e.g. Perfect"/>
+        <div class="fl">Artist</div><input class="fi" id="sartist" value="${esc(ourSong.artist||'')}" placeholder="e.g. Ed Sheeran"/>
+        <div class="fl">Link (Spotify/YouTube)</div><input class="fi" id="surl" value="${esc(ourSong.url||'')}" placeholder="https://…"/>
+        <button class="save-btn" onclick="saveSong()">Save 🎵</button>
+      </div>
+    </div>`;}
+function saveSong(){ourSong={title:document.getElementById('stitle')?.value.trim()||'',artist:document.getElementById('sartist')?.value.trim()||'',url:document.getElementById('surl')?.value.trim()||''};fsShared('ourSong',ourSong);rSong(document.getElementById('screen'));}
+
+// ── CHECKIN ──
+const CHECKIN_ITEMS=[
+  {id:'paid_bills',label:'Bills paid 💳'},
+  {id:'grocery_done',label:'Grocery done 🛒'},
+  {id:'house_clean',label:'House cleaned 🏠'},
+  {id:'laundry',label:'Laundry done 👕'},
+  {id:'quality_time',label:'Quality time together 💕'},
+  {id:'exercise',label:'Exercised 🏃'},
+  {id:'cook',label:'Cooked at home 🍳'},
+  {id:'plan_weekend',label:'Weekend planned 📅'},
+];
+function rCheckin(s){
+  const{mon,sun}=getWeekRange();const weekStr=`${fmtShort(mon)} – ${fmtShort(sun)}`;
+  const thisWeek=checkins.find(c=>c.week===weekStr)||{checks:{}};
+  s.innerHTML=`
+    <div class="back-row" onclick="go('notes')">${ICO.back} Back</div>
+    <div class="ph" style="padding-top:4px"><div class="ph-title">✅ Weekly check-in</div><div class="ph-sub">${weekStr}</div></div>
+    <div class="feat-wrap">
+      <div class="cd-add-form">
+        <div class="cd-add-title">This week 💕</div>
+        ${CHECKIN_ITEMS.map(item=>{const checked=thisWeek.checks?.[item.id];return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleCheckinItem('${weekStr}','${item.id}')">
+          <div style="width:24px;height:24px;border-radius:50%;border:2px solid ${checked?'var(--g)':'var(--border2)'};background:${checked?'var(--g)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:13px">${checked?'✓':''}</div>
+          <div style="font-size:14px;color:${checked?'var(--ink3)':'var(--ink)'};${checked?'text-decoration:line-through':''};">${item.label}</div>
+        </div>`;}).join('')}
+        <div class="fl" style="margin-top:12px">Notes for this week</div>
+        <textarea class="fta" id="ci-note" placeholder="Anything to note this week…" style="min-height:70px">${esc(thisWeek.note||'')}</textarea>
+        <button class="save-btn" onclick="saveCheckinNote('${weekStr}')">Save notes</button>
+      </div>
+      ${checkins.length>1?`<div style="font-size:12px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Past weeks</div>
+      ${checkins.filter(c=>c.week!==weekStr).slice(0,6).map(c=>{const done=Object.values(c.checks||{}).filter(Boolean).length;return`<div class="past-checkin-item">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">📅</span><span style="flex:1;font-size:14px;color:var(--ink)">${c.week}</span><span style="font-size:12px;font-weight:600;color:var(--g)">${done}/${CHECKIN_ITEMS.length} done</span></div>
+        ${c.note?`<div style="font-size:12px;color:var(--ink2);font-style:italic;padding-left:26px">"${esc(c.note.slice(0,80))}${c.note.length>80?'…':''}"</div>`:''}
+      </div>`;}).join('')}`:''}
+    </div>`;}
+
+function toggleCheckinItem(weekStr,itemId){
+  let entry=checkins.find(c=>c.week===weekStr);
+  if(!entry){entry={id:Date.now(),week:weekStr,checks:{},note:''};checkins.unshift(entry);}
+  entry.checks=entry.checks||{};
+  entry.checks[itemId]=!entry.checks[itemId];
+  fsShared('checkins',{items:checkins});
+  rCheckin(document.getElementById('screen'));
+}
+function saveCheckinNote(weekStr){
+  let entry=checkins.find(c=>c.week===weekStr);
+  const note=document.getElementById('ci-note')?.value||'';
+  if(!entry){entry={id:Date.now(),week:weekStr,checks:{},note};checkins.unshift(entry);}
+  else entry.note=note;
+  fsShared('checkins',{items:checkins});
+  const btn=document.querySelector('.save-btn');if(btn){btn.textContent='Saved ✓';setTimeout(()=>{if(btn)btn.textContent='Save notes';},1500);}
+}
+
+// ── LIGHTBOX ──
+function showLB(src){document.getElementById('lightbox-root').innerHTML=`<div class="lightbox" onclick="closeLB()"><img src="${src}" alt=""/><button class="lightbox-close" onclick="closeLB()">×</button></div>`;}
+function closeLB(){document.getElementById('lightbox-root').innerHTML='';}
+
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+try{render();}catch(e){console.error('Render error:',e);}
+</script>
+</body>
+</html>
