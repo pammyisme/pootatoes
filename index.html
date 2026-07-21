@@ -363,7 +363,7 @@ function pctMonthDone(){const n=new Date(),days=new Date(n.getFullYear(),n.getMo
 function sd(c){const e=document.getElementById('sync-dot');if(e)e.style.background=c;}
 function getWeekRange(d=new Date()){const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);const mon=new Date(new Date(d).setDate(diff));const sun=new Date(mon);sun.setDate(mon.getDate()+6);return{mon,sun};}
 function fmtShort(d){const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return`${mo[d.getMonth()]} ${d.getDate()}`;}
-function allEntries(){return[...entries,...mems.map(m=>({...m,etype:'memory'}))].sort((a,b)=>b.id-a.id);}
+function allEntries(){return[...entries,...mems.map(m=>({...m,etype:'memory'}))].sort((a,b)=>b.date-a.date);}
 function totalBudget(arr){return arr.reduce((s,e)=>s+(+e.budget||0),0);}
 function periodEntries(period){
   const now=new Date(),todayStr=now.toISOString().slice(0,10);
@@ -384,9 +384,9 @@ async function fsShared(id,data){await fsSet('shared',id,data);}
 function startSync(){
   const{collection,onSnapshot}=fs();
   // New typed entries
-  onSnapshot(collection(db(),'entries'),snap=>{entries=snap.docs.map(d=>d.data()).sort((a,b)=>b.id-a.id);if(['home','stats'].includes(page))render();sd('#22c55e');},e=>{console.error('entries:',e.code);sd('#ef4444');});
+  onSnapshot(collection(db(),'entries'),snap=>{entries=snap.docs.map(d=>d.data()).sort((a,b)=>b.date-a.date);if(['home','stats'].includes(page))render();sd('#22c55e');},e=>{console.error('entries:',e.code);sd('#ef4444');});
   // Old memories (kept for backward compat)
-  onSnapshot(collection(db(),'memories'),snap=>{mems=snap.docs.map(d=>d.data()).sort((a,b)=>b.id-a.id);if(['home','stats'].includes(page))render();},()=>{});
+  onSnapshot(collection(db(),'memories'),snap=>{mems=snap.docs.map(d=>d.data()).sort((a,b)=>b.date-a.date);if(['home','stats'].includes(page))render();},()=>{});
   const keys=['wheel','listData','countdowns','calendarEvents','jarNotes','ourSong','couplePhoto','checkins'];
   keys.forEach(k=>onSnapshot(fs().doc(db(),'shared',k),snap=>{
     if(!snap.exists())return;const d=snap.data();
